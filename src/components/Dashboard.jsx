@@ -15,6 +15,19 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
     }
   }
 
+  const getPositionName = (hierarchy, positionsList = []) => {
+    const posObj = positionsList.find((p) => String(p.hierarchy) === String(hierarchy))
+    if (posObj && posObj.position) return posObj.position
+
+    const hVal = Number(hierarchy)
+    if (hVal === 1) return 'Owner'
+    if (hVal === 2) return 'Website Admin'
+    if (hVal === 3) return 'Content Manager'
+    if (hVal === 4) return 'Blog Manager'
+    if (hVal === 5) return 'Anggota'
+    return hierarchy !== null && hierarchy !== undefined ? `Hierarki ${hierarchy}` : '-'
+  }
+
   const [contents, setContents] = useState([])
   const [loading, setLoading] = useState(true)
   const [errorMsg, setErrorMsg] = useState('')
@@ -56,7 +69,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
   const [memberUserId, setMemberUserId] = useState('')
   const [memberName, setMemberName] = useState('')
   const [memberEmail, setMemberEmail] = useState('')
-  const [memberHierarchy, setMemberHierarchy] = useState(4) // default to 4 (Anggota)
+  const [memberHierarchy, setMemberHierarchy] = useState(5) // default to 5 (Anggota)
   const [memberAccess, setMemberAccess] = useState(false)
   const [memberPassword, setMemberPassword] = useState('')
   const [memberSubmitting, setMemberSubmitting] = useState(false)
@@ -65,7 +78,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
   const [isEditMemberModalOpen, setIsEditMemberModalOpen] = useState(false)
   const [editingMember, setEditingMember] = useState(null)
   const [editMemberName, setEditMemberName] = useState('')
-  const [editMemberHierarchy, setEditMemberHierarchy] = useState(4)
+  const [editMemberHierarchy, setEditMemberHierarchy] = useState(5)
   const [editMemberAccess, setEditMemberAccess] = useState(false)
   const [editMemberPassword, setEditMemberPassword] = useState('')
   const [editMemberSubmitting, setEditMemberSubmitting] = useState(false)
@@ -117,7 +130,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
 
   // Fetch Contents
   const fetchContents = async () => {
-    setLoading(true)
+    if (contents.length === 0) setLoading(true)
     setErrorMsg('')
     try {
       const { data, error } = await supabase
@@ -137,7 +150,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
 
   // Fetch Blogs
   const fetchBlogs = async () => {
-    setBlogsLoading(true)
+    if (blogs.length === 0) setBlogsLoading(true)
     setBlogsError('')
     try {
       const { data, error } = await supabase
@@ -252,7 +265,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
 
   // Fetch Members (from public.user)
   const fetchMembers = async () => {
-    setMembersLoading(true)
+    if (members.length === 0) setMembersLoading(true)
     setErrorMsg('')
     try {
       let { data, error } = await supabase
@@ -281,6 +294,12 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
   const handleToggleMemberAccess = async (userId, currentAccess) => {
     setErrorMsg('')
     try {
+      // Guard: Website Admin cannot modify Owner or Website Admin
+      const targetMember = members.find(m => m.user_id === userId)
+      if (userProfile?.hierarchy === 2 && targetMember && (targetMember.hierarchy === 1 || targetMember.hierarchy === 2)) {
+        throw new Error('Sebagai Website Admin, Anda tidak diizinkan untuk mengubah status akses pengguna dengan peran Owner atau Website Admin.')
+      }
+
       const { error } = await supabase
         .from('user')
         .update({ access: !currentAccess })
@@ -301,6 +320,11 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
     setMemberSubmitting(true)
     setErrorMsg('')
     try {
+      // Guard: Website Admin cannot assign Owner or Website Admin roles
+      if (userProfile?.hierarchy === 2 && (Number(memberHierarchy) === 1 || Number(memberHierarchy) === 2)) {
+        throw new Error('Sebagai Website Admin, Anda tidak diizinkan untuk menetapkan peran Owner atau Website Admin.')
+      }
+
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
@@ -365,7 +389,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
       setMemberName('')
       setMemberEmail('')
       setMemberPassword('')
-      setMemberHierarchy(4)
+      setMemberHierarchy(5)
       setMemberAccess(false)
 
       fetchMembers()
@@ -389,6 +413,16 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
     setEditMemberSubmitting(true)
     setErrorMsg('')
     try {
+      // Guard: Website Admin cannot modify Owner or Website Admin roles/members
+      if (userProfile?.hierarchy === 2) {
+        if (editingMember.hierarchy === 1 || editingMember.hierarchy === 2) {
+          throw new Error('Sebagai Website Admin, Anda tidak diizinkan untuk mengubah anggota dengan peran Owner atau Website Admin.')
+        }
+        if (Number(editMemberHierarchy) === 1 || Number(editMemberHierarchy) === 2) {
+          throw new Error('Sebagai Website Admin, Anda tidak diizinkan untuk menetapkan peran Owner atau Website Admin.')
+        }
+      }
+
       // Step 1: Admin forces password reset for member (if field is filled)
       if (editMemberPassword.trim() !== '') {
         if (!supabaseAdmin) {
@@ -584,7 +618,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
 
   // Fetch Positions (from public.position)
   const fetchPositions = async () => {
-    setPositionsLoading(true)
+    if (positions.length === 0) setPositionsLoading(true)
     setPositionsError('')
     try {
       const { data, error } = await supabase
@@ -604,7 +638,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
 
   // Fetch Combined Permissions & Administrators List
   const fetchPermissionsList = async () => {
-    setPermissionsLoading(true)
+    if (permissionsList.length === 0) setPermissionsLoading(true)
     setPermissionsError('')
     try {
       const { data: permData, error: permError } = await supabase
@@ -1273,7 +1307,6 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                     <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-xs tracking-wider">
                       <tr>
                         <th className="px-6 py-4">No</th>
-                        <th className="px-6 py-4">User ID (Supabase)</th>
                         <th className="px-6 py-4">Email</th>
                         <th className="px-6 py-4">Hierarki (ID)</th>
                         <th className="px-6 py-4 text-center">Status Akses</th>
@@ -1283,7 +1316,6 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                       {[1, 2, 3].map((n) => (
                         <tr key={n}>
                           <td className="px-6 py-4"><div className="h-4 w-8 shimmer-bg rounded"></div></td>
-                          <td className="px-6 py-4"><div className="h-4 w-56 shimmer-bg rounded"></div></td>
                           <td className="px-6 py-4"><div className="h-4 w-44 shimmer-bg rounded"></div></td>
                           <td className="px-6 py-4"><div className="h-4 w-20 shimmer-bg rounded"></div></td>
                           <td className="px-6 py-4"><div className="h-8 w-24 shimmer-bg rounded mx-auto"></div></td>
@@ -1308,7 +1340,6 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                     <thead className="bg-slate-50 text-slate-600 uppercase font-semibold text-xs tracking-wider">
                       <tr>
                         <th className="px-6 py-4">No</th>
-                        <th className="px-6 py-4">User ID (Supabase)</th>
                         <th className="px-6 py-4">Nama Lengkap</th>
                         <th className="px-6 py-4">Email</th>
                         <th className="px-6 py-4">Nama Jabatan</th>
@@ -1317,13 +1348,15 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-slate-700">
-                      {filteredMembers.map((member, index) => (
-                        <tr key={member.user_id} className="hover:bg-slate-50/70 transition-colors">
+                      {filteredMembers.map((member, index) => {
+                        const isWebsiteAdmin = userProfile?.hierarchy === 2;
+                        const isProtectedRole = member.hierarchy === 1 || member.hierarchy === 2;
+                        const canEditThisMember = permissions.manage_user && !(isWebsiteAdmin && isProtectedRole);
+
+                        return (
+                          <tr key={member.user_id} className="hover:bg-slate-50/70 transition-colors">
                           <td className="px-6 py-4 whitespace-nowrap font-mono text-xs font-semibold text-slate-500">
                             {index + 1}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-slate-500">
-                            {member.user_id}
                           </td>
                           <td className="px-6 py-4 font-semibold text-slate-900">
                             {member.name || <span className="text-slate-400 italic">Belum Diatur</span>}
@@ -1332,19 +1365,20 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                             {member.email || <span className="text-slate-400 italic">Tidak Tersedia</span>}
                           </td>
                           <td className="px-6 py-4 font-semibold text-slate-700">
-                            {(() => {
-                              const posObj = positions.find((p) => String(p.hierarchy) === String(member.hierarchy));
-                              return posObj ? posObj.position : (member.hierarchy !== null && member.hierarchy !== undefined ? `Hierarki ${member.hierarchy}` : '-');
-                            })()}
+                            {getPositionName(member.hierarchy, positions)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-center">
                             <button
+                              disabled={!canEditThisMember}
                               onClick={() => handleToggleMemberAccess(member.user_id, member.access)}
-                              className={`inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer shadow-sm ${
-                                member.access
-                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 hover:bg-emerald-200'
-                                  : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200'
+                              className={`inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ${
+                                !canEditThisMember
+                                  ? 'bg-slate-50 text-slate-400 border border-slate-100 cursor-not-allowed'
+                                  : member.access
+                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 hover:bg-emerald-200 cursor-pointer'
+                                    : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 cursor-pointer'
                               }`}
+                              title={canEditThisMember ? "Ubah Izin Akses" : "Peran dilindungi"}
                             >
                               <span className={`h-1.5 w-1.5 rounded-full mr-1.5 ${member.access ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
                               {member.access ? 'Aktif (Diizinkan)' : 'Nonaktif (Ditolak)'}
@@ -1352,20 +1386,20 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right">
                             <button
-                              disabled={!permissions.manage_user}
+                              disabled={!canEditThisMember}
                               onClick={() => {
                                 setEditingMember(member)
                                 setEditMemberName(member.name || '')
-                                setEditMemberHierarchy(member.hierarchy || 4)
+                                setEditMemberHierarchy(member.hierarchy || 5)
                                 setEditMemberAccess(member.access === true)
                                 setIsEditMemberModalOpen(true)
                               }}
                               className={`inline-flex items-center space-x-1 px-3 py-1.5 border border-slate-200 rounded-md text-xs font-semibold transition-all shadow-sm ${
-                                permissions.manage_user
+                                canEditThisMember
                                   ? 'text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-900 cursor-pointer'
                                   : 'text-slate-300 bg-slate-50 cursor-not-allowed border-slate-100'
                               }`}
-                              title={permissions.manage_user ? "Edit Anggota" : "Izin Edit Ditolak"}
+                              title={canEditThisMember ? "Edit Anggota" : "Peran dilindungi"}
                             >
                               <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -1374,7 +1408,8 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                             </button>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -1525,10 +1560,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                       {permissionsList.map((perm) => (
                         <tr key={perm.hierarchy} className="hover:bg-slate-50/70 transition-colors">
                           <td className="px-6 py-4 font-semibold text-slate-900">
-                            {(() => {
-                              const posObj = positions.find((p) => String(p.hierarchy) === String(perm.hierarchy));
-                              return posObj ? posObj.position : `Hierarki ${perm.hierarchy}`;
-                            })()}
+                            {getPositionName(perm.hierarchy, positions)}
                           </td>
                           <td className="px-6 py-4 text-center">
                             <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
@@ -1928,15 +1960,17 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                   className="block w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 focus:bg-white transition-all text-sm cursor-pointer"
                 >
                   {positions.length > 0 ? (
-                    positions.map((pos) => (
-                      <option key={pos.hierarchy} value={pos.hierarchy}>
-                        {pos.position}
-                      </option>
-                    ))
+                    positions
+                      .filter((pos) => !(userProfile?.hierarchy === 2 && (Number(pos.hierarchy) === 1 || Number(pos.hierarchy) === 2)))
+                      .map((pos) => (
+                        <option key={pos.hierarchy} value={pos.hierarchy}>
+                          {pos.position}
+                        </option>
+                      ))
                   ) : (
                     <>
-                      <option value={1}>Owner</option>
-                      <option value={2}>Website Admin</option>
+                      {!(userProfile?.hierarchy === 2) && <option value={1}>Owner</option>}
+                      {!(userProfile?.hierarchy === 2) && <option value={2}>Website Admin</option>}
                       <option value={3}>Content Manager</option>
                       <option value={4}>Blog Manager</option>
                       <option value={5}>Anggota</option>
@@ -2012,17 +2046,6 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
 
             {/* Modal Form */}
             <form onSubmit={handleEditMember} className="mt-6 space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-slate-500 mb-1">
-                  User ID Supabase (UUID)
-                </label>
-                <input
-                  type="text"
-                  disabled
-                  value={editingMember.user_id}
-                  className="block w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-100 text-slate-505 text-sm font-mono cursor-not-allowed"
-                />
-              </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -2079,15 +2102,17 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                   className="block w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 focus:bg-white transition-all text-sm cursor-pointer"
                 >
                   {positions.length > 0 ? (
-                    positions.map((pos) => (
-                      <option key={pos.hierarchy} value={pos.hierarchy}>
-                        {pos.position}
-                      </option>
-                    ))
+                    positions
+                      .filter((pos) => !(userProfile?.hierarchy === 2 && (Number(pos.hierarchy) === 1 || Number(pos.hierarchy) === 2)))
+                      .map((pos) => (
+                        <option key={pos.hierarchy} value={pos.hierarchy}>
+                          {pos.position}
+                        </option>
+                      ))
                   ) : (
                     <>
-                      <option value={1}>Owner</option>
-                      <option value={2}>Website Admin</option>
+                      {!(userProfile?.hierarchy === 2) && <option value={1}>Owner</option>}
+                      {!(userProfile?.hierarchy === 2) && <option value={2}>Website Admin</option>}
                       <option value={3}>Content Manager</option>
                       <option value={4}>Blog Manager</option>
                       <option value={5}>Anggota</option>
@@ -2256,8 +2281,8 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                   type="text"
                   disabled
                   value={(() => {
-                    const posObj = positions.find((p) => String(p.hierarchy) === String(editingPermissionRow.hierarchy));
-                    return posObj ? `${posObj.position} (ID: ${editingPermissionRow.hierarchy})` : `Hierarki ${editingPermissionRow.hierarchy}`;
+                    const posName = getPositionName(editingPermissionRow.hierarchy, positions);
+                    return `${posName} (ID: ${editingPermissionRow.hierarchy})`;
                   })()}
                   className="block w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-100 text-slate-700 text-sm font-semibold cursor-not-allowed"
                 />

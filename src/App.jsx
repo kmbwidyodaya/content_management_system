@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from './supabaseClient'
 import Login from './components/Login'
 import AccessDenied from './components/AccessDenied'
@@ -13,6 +13,7 @@ function App() {
   const [errorMessage, setErrorMessage] = useState('')
   const [userPosition, setUserPosition] = useState('')
   const [userProfile, setUserProfile] = useState(null)
+  const lastUserIdRef = useRef(null)
   const [permissions, setPermissions] = useState({
     access: false,
     manage_permission: false,
@@ -45,8 +46,15 @@ function App() {
   useEffect(() => {
     if (!user) {
       setIsAuthorized(null)
+      lastUserIdRef.current = null
       return
     }
+
+    if (user.id === lastUserIdRef.current && isAuthorized === true) {
+      return
+    }
+
+    lastUserIdRef.current = user.id
 
     const checkPermissions = async () => {
       setPermChecking(true)
@@ -242,6 +250,37 @@ function App() {
     setSession(null)
     setIsAuthorized(null)
   }
+
+  // 3. Inactivity Timeout (10 minutes)
+  useEffect(() => {
+    if (!user) return
+
+    let timeoutId
+
+    const resetTimer = () => {
+      if (timeoutId) clearTimeout(timeoutId)
+      timeoutId = setTimeout(() => {
+        console.log('Inactivity timeout reached, logging out...')
+        handleLogout()
+      }, 10 * 60 * 1000) // 10 minutes in ms
+    }
+
+    // Set up event listeners for user activity
+    const events = ['mousemove', 'mousedown', 'keypress', 'scroll', 'touchstart']
+    events.forEach((event) => {
+      window.addEventListener(event, resetTimer)
+    })
+
+    // Initialize timer
+    resetTimer()
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId)
+      events.forEach((event) => {
+        window.removeEventListener(event, resetTimer)
+      })
+    }
+  }, [user])
 
   // Loader screen
   if (authLoading || permChecking) {
