@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Radial gradient matching the warm orange/red/gold textured colors of the uploaded logo -->
+    <radialGradient id="widyodayaGrad" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+      <stop offset="0%" stop-color="#fffbeb" /> <!-- very light amber -->
+      <stop offset="20%" stop-color="#fef08a" /> <!-- light yellow -->
+      <stop offset="45%" stop-color="#f59e0b" /> <!-- amber -->
+      <stop offset="75%" stop-color="#ea580c" /> <!-- orange-600 -->
+      <stop offset="100%" stop-color="#991b1b" /> <!-- red-800 -->
+    </radialGradient>
+    
+    <!-- Outer drop shadow for premium look -->
+    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#78350f" flood-opacity="0.15" />
+    </filter>
+  </defs>
+
+  <!-- Flower Group -->
+  <g transform="translate(256, 256)" filter="url(#dropShadow)">
+    <!-- 8 Petals arranged symmetrically -->
+    <!-- We draw one petal and rotate it 45 degrees 8 times -->
+    <!-- The petal shape is crafted using precise bezier curves to resemble a lotus petal -->
+    <path id="petal" d="M 0,-40 C 45,-90 65,-140 0,-215 C -65,-140 -45,-90 0,-40" fill="url(#widyodayaGrad)" stroke="#78350f" stroke-width="2" />
+    <use href="#petal" transform="rotate(45)" />
+    <use href="#petal" transform="rotate(90)" />
+    <use href="#petal" transform="rotate(135)" />
+    <use href="#petal" transform="rotate(180)" />
+    <use href="#petal" transform="rotate(225)" />
+    <use href="#petal" transform="rotate(270)" />
+    <use href="#petal" transform="rotate(315)" />
+    
+    <!-- Central White Circular Opening Cutout -->
+    <circle cx="0" cy="0" r="58" fill="#ffffff" stroke="#78350f" stroke-width="2.5" />
+    
+    <!-- Dharmachakra (8-Spoked Wheel) centered inside the cutout -->
+    <g stroke="#b45309" stroke-width="3" fill="none">
+      <!-- Outer rim of the wheel -->
+      <circle cx="0" cy="0" r="42" fill="none" stroke="#b45309" stroke-width="4.5" />
+      <circle cx="0" cy="0" r="34" fill="none" stroke="#b45309" stroke-width="1.5" />
+      
+      <!-- Inner hub of the wheel -->
+      <circle cx="0" cy="0" r="10" fill="#b45309" stroke="#b45309" stroke-width="1" />
+      <circle cx="0" cy="0" r="4" fill="#ffffff" />
+      
+      <!-- 8 Spokes -->
+      <line x1="0" y1="0" x2="0" y2="-42" stroke-width="3.5" />
+      <line x1="0" y1="0" x2="0" y2="42" stroke-width="3.5" />
+      <line x1="0" y1="0" x2="-42" y2="0" stroke-width="3.5" />
+      <line x1="0" y1="0" x2="42" y2="0" stroke-width="3.5" />
+      <line x1="0" y1="0" x2="-29.7" y2="-29.7" stroke-width="3.5" />
+      <line x1="0" y1="0" x2="29.7" y2="-29.7" stroke-width="3.5" />
+      <line x1="0" y1="0" x2="-29.7" y2="29.7" stroke-width="3.5" />
+      <line x1="0" y1="0" x2="29.7" y2="29.7" stroke-width="3.5" />
+      
+      <!-- Tiny Knobs / Spindle Caps on the outer rim -->
+      <circle cx="0" cy="-42" r="3.5" fill="#b45309" stroke="none" />
+      <circle cx="0" cy="42" r="3.5" fill="#b45309" stroke="none" />
+      <circle cx="-42" cy="0" r="3.5" fill="#b45309" stroke="none" />
+      <circle cx="42" cy="0" r="3.5" fill="#b45309" stroke="none" />
+      <circle cx="-29.7" cy="-29.7" r="3.5" fill="#b45309" stroke="none" />
+      <circle cx="29.7" cy="-29.7" r="3.5" fill="#b45309" stroke="none" />
+      <circle cx="-29.7" cy="29.7" r="3.5" fill="#b45309" stroke="none" />
+      <circle cx="29.7" cy="29.7" r="3.5" fill="#b45309" stroke="none" />
+    </g>
+  </g>
+</svg>
