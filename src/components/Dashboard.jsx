@@ -3,7 +3,18 @@ import { createClient } from '@supabase/supabase-js'
 import { supabase, supabaseAdmin } from '../supabaseClient'
 import Beranda from './Beranda'
 
-export default function Dashboard({ user, userProfile, onLogout, permissions = { access: true, manage_permission: false }, userPosition = '' }) {
+export default function Dashboard({ user, userProfile, onLogout, permissions = { access: true, manage_permission: false, manage_user: false, content_management: false, blog_management: false }, userPosition = '' }) {
+  const isAnggota = userPosition.toLowerCase().includes('anggota')
+  if (isAnggota) {
+    permissions = {
+      ...permissions,
+      manage_user: false,
+      manage_permission: false,
+      content_management: false,
+      blog_management: false
+    }
+  }
+
   const [contents, setContents] = useState([])
   const [loading, setLoading] = useState(true)
   const [errorMsg, setErrorMsg] = useState('')
@@ -642,6 +653,10 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
       setActiveMenu('beranda')
     } else if (activeMenu === 'akses' && !permissions.manage_permission) {
       setActiveMenu('beranda')
+    } else if (activeMenu === 'konten' && !permissions.content_management) {
+      setActiveMenu('beranda')
+    } else if (activeMenu === 'anggota' && !permissions.manage_user) {
+      setActiveMenu('beranda')
     }
   }, [activeMenu, permissions])
 
@@ -810,7 +825,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
           <div className="flex items-center space-x-2.5">
             {/* Widyodaya Logo */}
             <div className="h-9 w-9 flex items-center justify-center rounded-lg bg-amber-50/50 border border-amber-200/50 shadow-xs">
-              <img src="/widyodaya.svg" alt="Logo KMB Widyodaya" className="h-7.5 w-7.5 object-contain" />
+              <img src="/widyodaya.png" alt="Logo KMB Widyodaya" className="h-7.5 w-7.5 object-contain" />
             </div>
             <span className="text-lg font-bold tracking-tight text-slate-900">
               KMB Widyodaya
@@ -849,8 +864,8 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
             </button>
           )}
 
-          {/* Kelola Konten: Always visible (requires access) */}
-          {permissions.access && (
+          {/* Kelola Konten: Visible if permissions.content_management === true */}
+          {permissions.content_management && (
             <button
               onClick={() => {
                 setActiveMenu('konten');
@@ -889,8 +904,8 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
             </button>
           )}
 
-          {/* Kelola Anggota: Visible if permissions.access === true */}
-          {permissions.access && (
+          {/* Kelola Anggota: Visible if permissions.manage_user === true */}
+          {permissions.manage_user && (
             <button
               onClick={() => {
                 setActiveMenu('anggota');
@@ -982,7 +997,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
 
             {/* Widyodaya Logo */}
             <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-amber-50/50 border border-amber-200/50 shadow-xs">
-              <img src="/widyodaya.svg" alt="Logo KMB Widyodaya" className="h-8 w-8 object-contain" />
+              <img src="/widyodaya.png" alt="Logo KMB Widyodaya" className="h-8 w-8 object-contain" />
             </div>
             <span className="text-xl font-bold tracking-tight text-slate-900">
               CMS KMB Widyodaya
@@ -1420,18 +1435,18 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-slate-700">
-                      {positions.map((pos) => (
+                       {positions.map((pos) => (
                         <tr key={pos.hierarchy} className="hover:bg-slate-50/70 transition-colors">
                           <td className="px-6 py-4 font-mono text-xs text-slate-500 font-semibold">{String(pos.hierarchy)}</td>
                           <td className="px-6 py-4 font-semibold text-slate-900">
-                            {pos.position || (Number(pos.hierarchy) === 1 ? 'Owner' : Number(pos.hierarchy) === 2 ? 'Website Admin' : Number(pos.hierarchy) === 3 ? 'Content Manager' : Number(pos.hierarchy) === 4 ? 'Regular Admin' : `Level ${pos.hierarchy}`)}
+                            {pos.position || (Number(pos.hierarchy) === 1 ? 'Owner' : Number(pos.hierarchy) === 2 ? 'Website Admin' : Number(pos.hierarchy) === 3 ? 'Content Manager' : Number(pos.hierarchy) === 4 ? 'Blog Manager' : 'Anggota')}
                           </td>
                           {cek_akses_manage_permission() && (
                             <td className="px-6 py-4 whitespace-nowrap text-right">
                               <button
                                 onClick={() => {
                                   setEditingPosition(pos)
-                                  setEditPositionName(pos.position || (Number(pos.hierarchy) === 1 ? 'Owner' : Number(pos.hierarchy) === 2 ? 'Website Admin' : Number(pos.hierarchy) === 3 ? 'Content Manager' : Number(pos.hierarchy) === 4 ? 'Regular Admin' : `Level ${pos.hierarchy}`))
+                                  setEditPositionName(pos.position || (Number(pos.hierarchy) === 1 ? 'Owner' : Number(pos.hierarchy) === 2 ? 'Website Admin' : Number(pos.hierarchy) === 3 ? 'Content Manager' : Number(pos.hierarchy) === 4 ? 'Blog Manager' : 'Anggota'))
                                   setIsEditPositionModalOpen(true)
                                 }}
                                 className="inline-flex items-center space-x-1 px-3 py-1.5 border border-slate-200 rounded-md text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-900 transition-all cursor-pointer shadow-sm"
@@ -1922,8 +1937,9 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                     <>
                       <option value={1}>Owner</option>
                       <option value={2}>Website Admin</option>
-                      <option value={3}>Website Moderator</option>
-                      <option value={4}>Anggota / Staf</option>
+                      <option value={3}>Content Manager</option>
+                      <option value={4}>Blog Manager</option>
+                      <option value={5}>Anggota</option>
                     </>
                   )}
                 </select>
@@ -2072,8 +2088,9 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                     <>
                       <option value={1}>Owner</option>
                       <option value={2}>Website Admin</option>
-                      <option value={3}>Website Moderator</option>
-                      <option value={4}>Anggota / Staf</option>
+                      <option value={3}>Content Manager</option>
+                      <option value={4}>Blog Manager</option>
+                      <option value={5}>Anggota</option>
                     </>
                   )}
                 </select>

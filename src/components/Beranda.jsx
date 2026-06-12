@@ -136,8 +136,8 @@ export default function Beranda({ user }) {
           if (hVal === 1) resolvedPos = 'Owner'
           else if (hVal === 2) resolvedPos = 'Website Admin'
           else if (hVal === 3) resolvedPos = 'Content Manager'
-          else if (hVal === 4) resolvedPos = 'Regular Admin'
-          else resolvedPos = `Level ${joinData.hierarchy}`
+          else if (hVal === 4) resolvedPos = 'Blog Manager'
+          else resolvedPos = 'Anggota'
         }
         
         setPositionName(resolvedPos)
@@ -173,8 +173,8 @@ export default function Beranda({ user }) {
           if (hVal === 1) resolvedPos = 'Owner'
           else if (hVal === 2) resolvedPos = 'Website Admin'
           else if (hVal === 3) resolvedPos = 'Content Manager'
-          else if (hVal === 4) resolvedPos = 'Regular Admin'
-          else resolvedPos = `Level ${userData.hierarchy}`
+          else if (hVal === 4) resolvedPos = 'Blog Manager'
+          else resolvedPos = 'Anggota'
         }
         
         setPositionName(resolvedPos)

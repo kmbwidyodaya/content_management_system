@@ -41,10 +41,10 @@ export default function Login({ onLoginSuccess }) {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-amber-500/5 rounded-full blur-3xl -z-10"></div>
 
         <div>
-          {/* Logo container using widyodaya.svg */}
+          {/* Logo container using widyodaya.png */}
           <div className="mx-auto h-20 w-20 flex items-center justify-center rounded-2xl bg-amber-50/50 border border-amber-200/50 shadow-xs">
             <img
-              src="/widyodaya.svg"
+              src="/widyodaya.png"
               alt="Logo KMB Widyodaya"
               className="h-16 w-16 object-contain"
             />

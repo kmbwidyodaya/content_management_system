@@ -128,9 +128,9 @@ function App() {
           } else if (hVal === 3) {
             currentPosName = 'Content Manager'
           } else if (hVal === 4) {
-            currentPosName = 'Regular Admin'
+            currentPosName = 'Blog Manager'
           } else {
-            currentPosName = `Level ${userData.hierarchy}`
+            currentPosName = 'Anggota'
           }
         }
 
@@ -138,6 +138,35 @@ function App() {
         let hasManageUser = false
         let hasManagePermission = false
         let hasContentManagement = false
+        let hasBlogManagement = false
+
+        const hVal = Number(userData.hierarchy)
+        if (hVal === 1) {
+          hasManageUser = true
+          hasManagePermission = true
+          hasContentManagement = true
+          hasBlogManagement = true
+        } else if (hVal === 2) {
+          hasManageUser = true
+          hasManagePermission = false
+          hasContentManagement = true
+          hasBlogManagement = true
+        } else if (hVal === 3) {
+          hasManageUser = false
+          hasManagePermission = false
+          hasContentManagement = true
+          hasBlogManagement = false
+        } else if (hVal === 4) {
+          hasManageUser = false
+          hasManagePermission = false
+          hasContentManagement = false
+          hasBlogManagement = true
+        } else {
+          hasManageUser = false
+          hasManagePermission = false
+          hasContentManagement = false
+          hasBlogManagement = false
+        }
 
         try {
           const { data: adminData } = await supabase
@@ -152,7 +181,6 @@ function App() {
           console.warn('Gagal memuat izin administrator (opsional):', adminErr)
         }
 
-        let hasBlogManagement = false
         try {
           const { data: permData } = await supabase
             .from('permission')
@@ -173,22 +201,23 @@ function App() {
               hasManageUser = permFallback.manage_user === true
               hasBlogManagement = permFallback.blog_management === true
             }
-            hasContentManagement = true
           }
         } catch (permErr) {
           console.warn('Gagal memuat detail perizinan (opsional):', permErr)
-          hasContentManagement = true
         }
+
+        const finalPositionName = currentPosName || 'Anggota / Staf'
+        const isAnggota = finalPositionName.toLowerCase().includes('anggota')
 
         // Simpan semua state yang diperlukan
         setUserProfile(userData)
-        setUserPosition(currentPosName || 'Anggota / Staf')
+        setUserPosition(finalPositionName)
         setPermissions({
           access: userData.access,
-          manage_user: hasManageUser,
-          manage_permission: hasManagePermission,
-          content_management: hasContentManagement,
-          blog_management: hasBlogManagement
+          manage_user: isAnggota ? false : hasManageUser,
+          manage_permission: isAnggota ? false : hasManagePermission,
+          content_management: isAnggota ? false : hasContentManagement,
+          blog_management: isAnggota ? false : hasBlogManagement
         })
 
         // Karena access = TRUE, buka dashboard
