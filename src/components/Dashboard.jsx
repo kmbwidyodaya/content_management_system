@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { createClient } from '@supabase/supabase-js'
 import { supabase, supabaseAdmin } from '../supabaseClient'
 import Beranda from './Beranda'
 
@@ -46,6 +47,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
   const [memberEmail, setMemberEmail] = useState('')
   const [memberHierarchy, setMemberHierarchy] = useState(4) // default to 4 (Anggota)
   const [memberAccess, setMemberAccess] = useState(false)
+  const [memberPassword, setMemberPassword] = useState('')
   const [memberSubmitting, setMemberSubmitting] = useState(false)
 
   // Edit Member Modal State
@@ -83,6 +85,25 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
   const [addManagePermission, setAddManagePermission] = useState(false)
   const [addPermissionSubmitting, setAddPermissionSubmitting] = useState(false)
 
+  // Blog Management States
+  const [blogs, setBlogs] = useState([])
+  const [blogsLoading, setBlogsLoading] = useState(false)
+  const [blogsError, setBlogsError] = useState('')
+  const [blogsSearchQuery, setBlogsSearchQuery] = useState('')
+  const [isBlogModalOpen, setIsBlogModalOpen] = useState(false)
+  const [blogModalMode, setBlogModalMode] = useState('create') // 'create' | 'edit'
+  const [currentBlogId, setCurrentBlogId] = useState(null)
+  const [blogFormTitle, setBlogFormTitle] = useState('')
+  const [blogFormSubtitle, setBlogFormSubtitle] = useState('')
+  const [blogFormText, setBlogFormText] = useState('')
+  const [blogFormSubmitting, setBlogFormSubmitting] = useState(false)
+
+  // Edit/Add Permission Checkbox states
+  const [editBlogManagement, setEditBlogManagement] = useState(false)
+  const [addBlogManagement, setAddBlogManagement] = useState(false)
+  const [editContentManagement, setEditContentManagement] = useState(false)
+  const [addContentManagement, setAddContentManagement] = useState(false)
+
   // Fetch Contents
   const fetchContents = async () => {
     setLoading(true)
@@ -101,6 +122,121 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Fetch Blogs
+  const fetchBlogs = async () => {
+    setBlogsLoading(true)
+    setBlogsError('')
+    try {
+      const { data, error } = await supabase
+        .from('blog_management')
+        .select('*')
+        .order('blog_id', { ascending: false })
+
+      if (error) throw error
+      setBlogs(data || [])
+    } catch (err) {
+      console.error(err)
+      setBlogsError('Gagal memuat artikel blog dari database.')
+    } finally {
+      setBlogsLoading(false)
+    }
+  }
+
+  const handleBlogDelete = async (blogId, title) => {
+    if (!window.confirm(`Apakah Anda yakin ingin menghapus artikel blog "${title}"?`)) return
+    setErrorMsg('')
+    setSuccessMsg('')
+    try {
+      const { error } = await supabase
+        .from('blog_management')
+        .delete()
+        .eq('blog_id', blogId)
+
+      if (error) throw error
+      setSuccessMsg('Artikel blog berhasil dihapus!')
+      fetchBlogs()
+    } catch (err) {
+      console.error(err)
+      setErrorMsg(`Gagal menghapus artikel: ${err.message}`)
+    }
+  }
+
+  const handleBlogSubmit = async (e) => {
+    e.preventDefault()
+    setBlogFormSubmitting(true)
+    setErrorMsg('')
+    setSuccessMsg('')
+    try {
+      const payload = {
+        title: blogFormTitle.trim(),
+        subtitle: blogFormSubtitle.trim(),
+        text: blogFormText.trim()
+      }
+
+      if (blogModalMode === 'create') {
+        // HANYA mengirimkan properti title, subtitle, dan text (tanpa id)
+        const { error } = await supabase
+          .from('blog_management')
+          .insert([
+            {
+              title: payload.title,
+              subtitle: payload.subtitle,
+              text: payload.text
+            }
+          ])
+
+        if (error) throw error
+        setSuccessMsg('Artikel blog baru berhasil ditambahkan!')
+      } else {
+        // HANYA mengirimkan properti title, subtitle, dan text (tanpa id) untuk update
+        const { error } = await supabase
+          .from('blog_management')
+          .update({
+            title: payload.title,
+            subtitle: payload.subtitle,
+            text: payload.text
+          })
+          .eq('blog_id', currentBlogId)
+
+        if (error) throw error
+        setSuccessMsg('Artikel blog berhasil diperbarui!')
+      }
+
+      setIsBlogModalOpen(false)
+      setBlogFormTitle('')
+      setBlogFormSubtitle('')
+      setBlogFormText('')
+      fetchBlogs()
+    } catch (err) {
+      console.error(err)
+      let customErr = err.message
+      if (customErr.includes('public.users')) {
+        customErr = `${err.message}. (Sistem mendeteksi ada foreign key/trigger database yang merujuk ke tabel public.users yang tidak ada. Silakan hubungi admin database Anda untuk mengubah referensi dari public.users menjadi public.user).`
+      }
+      setErrorMsg(`Gagal menyimpan artikel blog: ${customErr}`)
+    } finally {
+      setBlogFormSubmitting(false)
+    }
+  }
+
+  const openBlogCreateModal = () => {
+    setBlogModalMode('create')
+    setCurrentBlogId(null)
+    setBlogFormTitle('')
+    setBlogFormSubtitle('')
+    setBlogFormText('')
+    setIsBlogModalOpen(true)
+  }
+
+  const openBlogEditModal = (blog) => {
+    setBlogModalMode('edit')
+    setCurrentBlogId(blog.blog_id)
+    setBlogFormTitle(blog.title || '')
+    setBlogFormSubtitle(blog.subtitle || '')
+    setBlogFormText(blog.text || '')
+    setIsBlogModalOpen(true)
   }
 
   // Fetch Members (from public.user)
@@ -148,43 +284,76 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
     }
   }
 
-  // Add new member to public.user table
+  // Add new member (Register to Auth first, then upsert profile)
   const handleAddMember = async (e) => {
     e.preventDefault()
     setMemberSubmitting(true)
     setErrorMsg('')
     try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+      if (!supabaseUrl || !supabaseAnonKey) {
+        throw new Error('Supabase URL atau Anon Key tidak terkonfigurasi di berkas .env Anda.')
+      }
+
+      // 1. Sign up the user in Supabase Auth using a temporary client to avoid logging the admin out
+      const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false
+        }
+      })
+
+      const { data: authData, error: authError } = await tempClient.auth.signUp({
+        email: memberEmail.trim(),
+        password: memberPassword.trim()
+      })
+
+      if (authError) throw authError
+      if (!authData || !authData.user) {
+        throw new Error('Gagal meregistrasi user di Supabase Auth.')
+      }
+
+      const newUserId = authData.user.id
+
+      // 2. Upsert profile in public.user table using newUserId
       const payload = {
-        user_id: memberUserId.trim(),
+        user_id: newUserId,
         name: memberName.trim(),
         email: memberEmail.trim(),
         hierarchy: Number(memberHierarchy),
         access: memberAccess
       }
 
+      // Use upsert to handle case where db trigger handle_new_user already created the row
       const { error } = await supabase
         .from('user')
-        .insert([payload])
+        .upsert(payload)
 
       if (error) {
-        if (error.code === '42703') { // Column does not exist
+        const isEmailError = error.code === '42703' || 
+                             (error.message && (error.message.includes('email') || error.message.includes('schema cache')));
+        if (isEmailError) {
           console.warn('Email column does not exist in user table, retrying without email field.')
           const { email, ...safePayload } = payload
           const { error: fallbackErr } = await supabase
             .from('user')
-            .insert([safePayload])
+            .upsert(safePayload)
           if (fallbackErr) throw fallbackErr
         } else {
           throw error
         }
       }
 
-      setSuccessMsg('Anggota baru berhasil ditambahkan!')
+      setSuccessMsg('Anggota baru berhasil didaftarkan dan ditambahkan!')
       setIsMemberModalOpen(false)
       // Reset form
       setMemberUserId('')
       setMemberName('')
       setMemberEmail('')
+      setMemberPassword('')
       setMemberHierarchy(4)
       setMemberAccess(false)
 
@@ -295,7 +464,9 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
         .from('permission')
         .upsert({
           hierarchy: Number(editingPermissionRow.hierarchy),
-          manage_user: editManageUser
+          manage_user: editManageUser,
+          content_management: editContentManagement,
+          blog_management: editBlogManagement
         })
 
       if (permError) throw permError
@@ -364,7 +535,9 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
         .insert([
           {
             hierarchy: Number(addPermissionHierarchy),
-            manage_user: addManageUser
+            manage_user: addManageUser,
+            content_management: addContentManagement,
+            blog_management: addBlogManagement
           }
         ])
 
@@ -386,6 +559,8 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
       setIsAddPermissionModalOpen(false)
       setAddPermissionHierarchy('')
       setAddManageUser(false)
+      setAddContentManagement(false)
+      setAddBlogManagement(false)
       setAddManagePermission(false)
       fetchPermissionsList()
     } catch (err) {
@@ -444,6 +619,8 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
         return {
           hierarchy: h,
           manage_user: p ? p.manage_user === true : false,
+          content_management: p ? p.content_management === true : false,
+          blog_management: p ? p.blog_management === true : false,
           manage_permission: a ? a.manage_permission === true : false
         }
       }).sort((a, b) => Number(a.hierarchy) - Number(b.hierarchy))
@@ -457,16 +634,31 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
     }
   }
 
+  // Strict navigation guard to prevent unauthorized access
+  useEffect(() => {
+    if (activeMenu === 'blog' && !permissions.blog_management) {
+      setActiveMenu('beranda')
+    } else if (activeMenu === 'jabatan' && !permissions.manage_permission) {
+      setActiveMenu('beranda')
+    } else if (activeMenu === 'akses' && !permissions.manage_permission) {
+      setActiveMenu('beranda')
+    }
+  }, [activeMenu, permissions])
+
   // Load relevant data on activeMenu change
   useEffect(() => {
     if (activeMenu === 'konten') {
       fetchContents()
     } else if (activeMenu === 'anggota') {
+      fetchPositions()
       fetchMembers()
     } else if (activeMenu === 'jabatan') {
       fetchPositions()
     } else if (activeMenu === 'akses') {
+      fetchPositions()
       fetchPermissionsList()
+    } else if (activeMenu === 'blog') {
+      fetchBlogs()
     }
   }, [activeMenu])
 
@@ -674,6 +866,26 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               <span>Kelola Konten</span>
+            </button>
+          )}
+
+          {/* Kelola Blog: Visible if permissions.blog_management === true */}
+          {permissions.blog_management && (
+            <button
+              onClick={() => {
+                setActiveMenu('blog');
+                setIsSidebarOpen(false);
+              }}
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all cursor-pointer ${
+                activeMenu === 'blog'
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              }`}
+            >
+              <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+              <span>Kelola Blog</span>
             </button>
           )}
 
@@ -1084,7 +1296,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                         <th className="px-6 py-4">User ID (Supabase)</th>
                         <th className="px-6 py-4">Nama Lengkap</th>
                         <th className="px-6 py-4">Email</th>
-                        <th className="px-6 py-4">Hierarki (ID)</th>
+                        <th className="px-6 py-4">Nama Jabatan</th>
                         <th className="px-6 py-4 text-center">Status Akses CMS</th>
                         <th className="px-6 py-4 text-right">Aksi</th>
                       </tr>
@@ -1104,8 +1316,11 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                           <td className="px-6 py-4 text-slate-600">
                             {member.email || <span className="text-slate-400 italic">Tidak Tersedia</span>}
                           </td>
-                          <td className="px-6 py-4 font-mono text-slate-600 font-semibold">
-                            {member.hierarchy !== null && member.hierarchy !== undefined ? String(member.hierarchy) : '-'}
+                          <td className="px-6 py-4 font-semibold text-slate-700">
+                            {(() => {
+                              const posObj = positions.find((p) => String(p.hierarchy) === String(member.hierarchy));
+                              return posObj ? posObj.position : (member.hierarchy !== null && member.hierarchy !== undefined ? `Hierarki ${member.hierarchy}` : '-');
+                            })()}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-center">
                             <button
@@ -1284,16 +1499,22 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                   <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
                     <thead className="bg-slate-50 text-slate-600 uppercase font-semibold text-xs tracking-wider">
                       <tr>
-                        <th className="px-6 py-4">Tingkat Hierarki (ID)</th>
+                        <th className="px-6 py-4">Nama Jabatan</th>
                         <th className="px-6 py-4 text-center">Izin Kelola Anggota (public.permission)</th>
-                        <th className="px-6 py-4 text-center">Izin Kelola Hak Akses (public.administrator)</th>
+                        <th className="px-6 py-4 text-center">Izin Kelola Konten (public.permission)</th>
+                        <th className="px-6 py-4 text-center">Izin Kelola Blog (public.permission)</th>
                         {cek_akses_manage_permission() && <th className="px-6 py-4 text-right">Aksi</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-slate-700">
                       {permissionsList.map((perm) => (
                         <tr key={perm.hierarchy} className="hover:bg-slate-50/70 transition-colors">
-                          <td className="px-6 py-4 font-mono text-xs text-slate-500 font-semibold">{String(perm.hierarchy)}</td>
+                          <td className="px-6 py-4 font-semibold text-slate-900">
+                            {(() => {
+                              const posObj = positions.find((p) => String(p.hierarchy) === String(perm.hierarchy));
+                              return posObj ? posObj.position : `Hierarki ${perm.hierarchy}`;
+                            })()}
+                          </td>
                           <td className="px-6 py-4 text-center">
                             <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
                               perm.manage_user
@@ -1305,11 +1526,20 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                           </td>
                           <td className="px-6 py-4 text-center">
                             <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
-                              perm.manage_permission
+                              perm.content_management
                                 ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                                 : 'bg-rose-100 text-rose-800 border border-rose-200'
                             }`}>
-                              {perm.manage_permission ? 'Ya (TRUE)' : 'Tidak (FALSE)'}
+                              {perm.content_management ? 'Ya (TRUE)' : 'Tidak (FALSE)'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
+                              perm.blog_management
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                : 'bg-rose-100 text-rose-800 border border-rose-200'
+                            }`}>
+                              {perm.blog_management ? 'Ya (TRUE)' : 'Tidak (FALSE)'}
                             </span>
                           </td>
                           {cek_akses_manage_permission() && (
@@ -1318,6 +1548,8 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                                 onClick={() => {
                                   setEditingPermissionRow(perm)
                                   setEditManageUser(perm.manage_user === true)
+                                  setEditContentManagement(perm.content_management === true)
+                                  setEditBlogManagement(perm.blog_management === true)
                                   setEditManagePermission(perm.manage_permission === true)
                                   setIsEditPermissionModalOpen(true)
                                 }}
@@ -1338,6 +1570,178 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
               )}
             </div>
           </>
+        )}
+
+        {/* -------------------- TAB: KELOLA BLOG -------------------- */}
+        {activeMenu === 'blog' && (
+          permissions.blog_management ? (
+            <>
+              {/* Dashboard Title & Actions Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0 pb-6 border-b border-slate-200">
+                <div>
+                  <h1 className="text-3xl font-bold tracking-tight text-slate-900 m-0">
+                    Kelola Blog
+                  </h1>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Tambahkan, perbarui, atau hapus artikel blog KMB Widyodaya.
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
+                  {/* Search Input */}
+                  <div className="relative flex-1 sm:w-64">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Cari artikel blog..."
+                      value={blogsSearchQuery}
+                      onChange={(e) => setBlogsSearchQuery(e.target.value)}
+                      className="block w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg bg-white text-sm placeholder-slate-400 text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition-all shadow-sm"
+                    />
+                  </div>
+
+                  {/* Create Button */}
+                  <button
+                    onClick={openBlogCreateModal}
+                    className="flex items-center justify-center space-x-1.5 px-5 py-2.5 bg-amber-500 text-slate-950 font-semibold text-sm rounded-lg hover:bg-amber-600 hover:text-white transition-all duration-200 shadow-md shadow-amber-500/10 cursor-pointer"
+                  >
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span>Tambah Artikel Blog</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Blog List Table */}
+              <div className="mt-8">
+                {blogsLoading ? (
+                  /* Shimmer loading layout for Table */
+                  <div className="overflow-x-auto bg-white border border-slate-200 rounded-xl shadow-sm">
+                    <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
+                      <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-xs tracking-wider">
+                        <tr>
+                          <th className="px-6 py-4">ID</th>
+                          <th className="px-6 py-4">Judul Artikel</th>
+                          <th className="px-6 py-4">Sub Judul</th>
+                          <th className="px-6 py-4">Isi Konten (Ringkasan)</th>
+                          <th className="px-6 py-4">Tanggal Dibuat</th>
+                          <th className="px-6 py-4 text-right">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {[1, 2, 3].map((n) => (
+                          <tr key={n}>
+                            <td className="px-6 py-4"><div className="h-4 w-8 shimmer-bg rounded"></div></td>
+                            <td className="px-6 py-4"><div className="h-4 w-40 shimmer-bg rounded"></div></td>
+                            <td className="px-6 py-4"><div className="h-4 w-32 shimmer-bg rounded"></div></td>
+                            <td className="px-6 py-4"><div className="h-4 w-60 shimmer-bg rounded"></div></td>
+                            <td className="px-6 py-4"><div className="h-4 w-28 shimmer-bg rounded"></div></td>
+                            <td className="px-6 py-4 text-right"><div className="h-8 w-24 shimmer-bg rounded ml-auto"></div></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : blogsError ? (
+                  <div className="mb-6 rounded-xl bg-red-50 border border-red-200 p-4 shadow-sm text-red-800 text-sm">
+                    {blogsError}
+                  </div>
+                ) : blogs.filter(b => 
+                  (b.title || '').toLowerCase().includes(blogsSearchQuery.toLowerCase()) ||
+                  (b.subtitle || '').toLowerCase().includes(blogsSearchQuery.toLowerCase()) ||
+                  (b.text || '').toLowerCase().includes(blogsSearchQuery.toLowerCase())
+                ).length === 0 ? (
+                  /* Empty State */
+                  <div className="bg-white rounded-xl py-16 px-4 border border-slate-200 text-center max-w-xl mx-auto mt-12 shadow-sm">
+                    <svg className="mx-auto h-16 w-16 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 4a2 2 0 00-2-2h-3m3 3V9m0 4h-3m3 3h-3" />
+                    </svg>
+                    <h3 className="mt-4 text-lg font-semibold text-slate-800">Tidak ada artikel blog ditemukan</h3>
+                    <p className="mt-2 text-sm text-slate-500 max-w-xs mx-auto">
+                      {blogsSearchQuery ? 'Tidak ada artikel yang cocok dengan pencarian Anda.' : 'Belum ada artikel blog di database. Klik tombol "Tambah Artikel Blog" untuk mulai menulis.'}
+                    </p>
+                    {blogsSearchQuery && (
+                      <button
+                        onClick={() => setBlogsSearchQuery('')}
+                        className="mt-4 text-amber-600 hover:text-amber-500 font-semibold text-sm cursor-pointer"
+                      >
+                        Clear pencarian
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  /* Table Row List of Blogs */
+                  <div className="overflow-x-auto bg-white border border-slate-200 rounded-xl shadow-sm">
+                    <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
+                      <thead className="bg-slate-50 text-slate-600 uppercase font-semibold text-xs tracking-wider">
+                        <tr>
+                          <th className="px-6 py-4">ID</th>
+                          <th className="px-6 py-4">Judul Artikel</th>
+                          <th className="px-6 py-4">Sub Judul</th>
+                          <th className="px-6 py-4">Isi Konten (Ringkasan)</th>
+                          <th className="px-6 py-4">Tanggal Dibuat</th>
+                          <th className="px-6 py-4 text-right">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-slate-700">
+                        {blogs
+                          .filter(b => 
+                            (b.title || '').toLowerCase().includes(blogsSearchQuery.toLowerCase()) ||
+                            (b.subtitle || '').toLowerCase().includes(blogsSearchQuery.toLowerCase()) ||
+                            (b.text || '').toLowerCase().includes(blogsSearchQuery.toLowerCase())
+                          )
+                          .map((blog) => (
+                            <tr key={blog.blog_id} className="hover:bg-slate-50/70 transition-colors">
+                              <td className="px-6 py-4 font-mono text-xs text-slate-500 font-semibold">{blog.blog_id}</td>
+                              <td className="px-6 py-4 font-semibold text-slate-900">{blog.title}</td>
+                              <td className="px-6 py-4 text-slate-600 max-w-xs truncate">{blog.subtitle || '-'}</td>
+                              <td className="px-6 py-4 text-slate-500 max-w-xs truncate">
+                                {blog.text ? (blog.text.length > 80 ? blog.text.substring(0, 80) + '...' : blog.text) : '-'}
+                              </td>
+                              <td className="px-6 py-4 text-xs text-slate-500">
+                                {blog.created_at ? new Date(blog.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
+                              </td>
+                              <td className="px-6 py-4 text-right whitespace-nowrap">
+                                <div className="inline-flex items-center space-x-2">
+                                  <button
+                                    onClick={() => openBlogEditModal(blog)}
+                                    className="inline-flex items-center space-x-1 px-3 py-1.5 border border-slate-200 rounded-md text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-900 transition-all cursor-pointer shadow-sm"
+                                  >
+                                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                    <span>Edit</span>
+                                  </button>
+                                  <button
+                                    onClick={() => handleBlogDelete(blog.blog_id, blog.title)}
+                                    className="inline-flex items-center space-x-1 px-3 py-1.5 border border-red-200 rounded-md text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 hover:text-red-900 transition-all cursor-pointer shadow-sm"
+                                  >
+                                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                    <span>Hapus</span>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="p-8 bg-red-50 text-red-800 rounded-xl border border-red-200">
+              <h2 className="text-xl font-bold">Akses Ditolak</h2>
+              <p className="mt-1">Anda tidak memiliki izin untuk mengakses halaman Kelola Blog.</p>
+            </div>
+          )
         )}
       </main>
 
@@ -1459,20 +1863,6 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
             <form onSubmit={handleAddMember} className="mt-6 space-y-5">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                  User ID Supabase (UUID) <span className="text-amber-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Masukkan UUID user dari Supabase Auth..."
-                  value={memberUserId}
-                  onChange={(e) => setMemberUserId(e.target.value)}
-                  className="block w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 focus:bg-white transition-all text-sm font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Nama Lengkap <span className="text-amber-600">*</span>
                 </label>
                 <input
@@ -1501,17 +1891,41 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Hierarki Jabatan <span className="text-amber-600">*</span>
+                  Kata Sandi (Password) <span className="text-amber-600">*</span>
+                </label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Masukkan kata sandi untuk akun baru..."
+                  value={memberPassword}
+                  onChange={(e) => setMemberPassword(e.target.value)}
+                  className="block w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 focus:bg-white transition-all text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Nama Jabatan <span className="text-amber-600">*</span>
                 </label>
                 <select
                   value={memberHierarchy}
                   onChange={(e) => setMemberHierarchy(Number(e.target.value))}
                   className="block w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 focus:bg-white transition-all text-sm cursor-pointer"
                 >
-                  <option value={1}>1 - Owner</option>
-                  <option value={2}>2 - Website Admin</option>
-                  <option value={3}>3 - Website Moderator</option>
-                  <option value={4}>4 - Anggota / Staf</option>
+                  {positions.length > 0 ? (
+                    positions.map((pos) => (
+                      <option key={pos.hierarchy} value={pos.hierarchy}>
+                        {pos.position}
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value={1}>Owner</option>
+                      <option value={2}>Website Admin</option>
+                      <option value={3}>Website Moderator</option>
+                      <option value={4}>Anggota / Staf</option>
+                    </>
+                  )}
                 </select>
               </div>
 
@@ -1641,17 +2055,27 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Hierarki Jabatan <span className="text-amber-600">*</span>
+                  Nama Jabatan <span className="text-amber-600">*</span>
                 </label>
                 <select
                   value={editMemberHierarchy}
                   onChange={(e) => setEditMemberHierarchy(Number(e.target.value))}
                   className="block w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 focus:bg-white transition-all text-sm cursor-pointer"
                 >
-                  <option value={1}>1 - Owner</option>
-                  <option value={2}>2 - Website Admin</option>
-                  <option value={3}>3 - Website Moderator</option>
-                  <option value={4}>4 - Anggota / Staf</option>
+                  {positions.length > 0 ? (
+                    positions.map((pos) => (
+                      <option key={pos.hierarchy} value={pos.hierarchy}>
+                        {pos.position}
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value={1}>Owner</option>
+                      <option value={2}>Website Admin</option>
+                      <option value={3}>Website Moderator</option>
+                      <option value={4}>Anggota / Staf</option>
+                    </>
+                  )}
                 </select>
               </div>
 
@@ -1806,16 +2230,19 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
             </div>
 
             {/* Modal Form */}
-            <form onSubmit={handleEditPermissionRow} className="mt-6 space-y-5">
+             <form onSubmit={handleEditPermissionRow} className="mt-6 space-y-5">
               <div>
-                <label className="block text-sm font-medium text-slate-505 mb-1">
-                  Tingkat Hierarki (ID)
+                <label className="block text-sm font-medium text-slate-500 mb-1">
+                  Nama Jabatan (Hierarki ID)
                 </label>
                 <input
                   type="text"
                   disabled
-                  value={editingPermissionRow.hierarchy}
-                  className="block w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-100 text-slate-505 text-sm font-mono cursor-not-allowed"
+                  value={(() => {
+                    const posObj = positions.find((p) => String(p.hierarchy) === String(editingPermissionRow.hierarchy));
+                    return posObj ? `${posObj.position} (ID: ${editingPermissionRow.hierarchy})` : `Hierarki ${editingPermissionRow.hierarchy}`;
+                  })()}
+                  className="block w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-100 text-slate-700 text-sm font-semibold cursor-not-allowed"
                 />
               </div>
 
@@ -1830,6 +2257,32 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                   />
                   <label htmlFor="editManageUser" className="text-sm font-semibold text-slate-700 cursor-pointer select-none">
                     Izin Kelola Anggota (public.permission.manage_user)
+                  </label>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="editContentManagement"
+                    checked={editContentManagement}
+                    onChange={(e) => setEditContentManagement(e.target.checked)}
+                    className="h-4.5 w-4.5 text-amber-600 focus:ring-amber-500 border-slate-300 rounded cursor-pointer"
+                  />
+                  <label htmlFor="editContentManagement" className="text-sm font-semibold text-slate-700 cursor-pointer select-none">
+                    Izin Kelola Konten (public.permission.content_management)
+                  </label>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="editBlogManagement"
+                    checked={editBlogManagement}
+                    onChange={(e) => setEditBlogManagement(e.target.checked)}
+                    className="h-4.5 w-4.5 text-amber-600 focus:ring-amber-500 border-slate-300 rounded cursor-pointer"
+                  />
+                  <label htmlFor="editBlogManagement" className="text-sm font-semibold text-slate-700 cursor-pointer select-none">
+                    Izin Kelola Blog (public.permission.blog_management)
                   </label>
                 </div>
 
@@ -2009,6 +2462,32 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                 <div className="flex items-center space-x-3">
                   <input
                     type="checkbox"
+                    id="addContentManagement"
+                    checked={addContentManagement}
+                    onChange={(e) => setAddContentManagement(e.target.checked)}
+                    className="h-4.5 w-4.5 text-amber-600 focus:ring-amber-500 border-slate-300 rounded cursor-pointer"
+                  />
+                  <label htmlFor="addContentManagement" className="text-sm font-semibold text-slate-700 cursor-pointer select-none">
+                    Izin Kelola Konten (content_management)
+                  </label>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="addBlogManagement"
+                    checked={addBlogManagement}
+                    onChange={(e) => setAddBlogManagement(e.target.checked)}
+                    className="h-4.5 w-4.5 text-amber-600 focus:ring-amber-500 border-slate-300 rounded cursor-pointer"
+                  />
+                  <label htmlFor="addBlogManagement" className="text-sm font-semibold text-slate-700 cursor-pointer select-none">
+                    Izin Kelola Blog (blog_management)
+                  </label>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
                     id="addManagePermission"
                     checked={addManagePermission}
                     onChange={(e) => setAddManagePermission(e.target.checked)}
@@ -2041,6 +2520,101 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                     </svg>
                   )}
                   <span>Simpan Aturan</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Overlay for Blog (Only for Blog tab) */}
+      {isBlogModalOpen && activeMenu === 'blog' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm">
+          <div className="relative w-full max-w-2xl bg-white p-6 sm:p-8 rounded-2xl shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <h2 className="text-xl font-bold text-slate-900">
+                {blogModalMode === 'create' ? 'Tambah Artikel Blog Baru' : 'Edit Artikel Blog'}
+              </h2>
+              <button
+                onClick={() => setIsBlogModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 rounded-lg p-1 hover:bg-slate-100 transition-all cursor-pointer"
+              >
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleBlogSubmit} className="mt-6 space-y-5">
+              <div>
+                <label htmlFor="blogFormTitle" className="block text-sm font-semibold text-slate-700 mb-1">
+                  Judul Artikel <span className="text-amber-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="blogFormTitle"
+                  required
+                  placeholder="Masukkan judul artikel blog..."
+                  value={blogFormTitle}
+                  onChange={(e) => setBlogFormTitle(e.target.value)}
+                  className="block w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 focus:bg-white transition-all text-sm"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="blogFormSubtitle" className="block text-sm font-semibold text-slate-700 mb-1">
+                  Sub Judul <span className="text-amber-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="blogFormSubtitle"
+                  required
+                  placeholder="Masukkan sub judul artikel blog..."
+                  value={blogFormSubtitle}
+                  onChange={(e) => setBlogFormSubtitle(e.target.value)}
+                  className="block w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 focus:bg-white transition-all text-sm"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="blogFormText" className="block text-sm font-semibold text-slate-700 mb-1">
+                  Isi Artikel <span className="text-amber-600">*</span>
+                </label>
+                <textarea
+                  id="blogFormText"
+                  required
+                  rows="10"
+                  placeholder="Tuliskan isi artikel blog di sini..."
+                  value={blogFormText}
+                  onChange={(e) => setBlogFormText(e.target.value)}
+                  className="block w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 focus:bg-white transition-all text-sm resize-y min-h-[200px]"
+                ></textarea>
+              </div>
+
+              {/* Form Buttons */}
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3 mt-8">
+                <button
+                  type="button"
+                  onClick={() => setIsBlogModalOpen(false)}
+                  className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition-all cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={blogFormSubmitting}
+                  className="flex items-center space-x-1.5 px-5 py-2 bg-amber-500 text-slate-950 font-semibold text-sm rounded-lg hover:bg-amber-600 hover:text-white transition-all shadow-md shadow-amber-500/10 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {blogFormSubmitting && (
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-slate-950" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                  )}
+                  <span>{blogModalMode === 'create' ? 'Tambah Artikel' : 'Simpan Perubahan'}</span>
                 </button>
               </div>
             </form>

@@ -15,7 +15,8 @@ function App() {
   const [userProfile, setUserProfile] = useState(null)
   const [permissions, setPermissions] = useState({
     access: false,
-    manage_permission: false
+    manage_permission: false,
+    blog_management: false
   })
 
   // 1. Listen to auth state changes
@@ -151,23 +152,26 @@ function App() {
           console.warn('Gagal memuat izin administrator (opsional):', adminErr)
         }
 
+        let hasBlogManagement = false
         try {
           const { data: permData } = await supabase
             .from('permission')
-            .select('manage_user, content_management')
+            .select('manage_user, content_management, blog_management')
             .eq('hierarchy', userData.hierarchy)
             .maybeSingle()
           if (permData) {
             hasManageUser = permData.manage_user === true
             hasContentManagement = permData.content_management === true
+            hasBlogManagement = permData.blog_management === true
           } else {
             const { data: permFallback } = await supabase
               .from('permission')
-              .select('manage_user')
+              .select('manage_user, blog_management')
               .eq('hierarchy', userData.hierarchy)
               .maybeSingle()
             if (permFallback) {
               hasManageUser = permFallback.manage_user === true
+              hasBlogManagement = permFallback.blog_management === true
             }
             hasContentManagement = true
           }
@@ -183,7 +187,8 @@ function App() {
           access: userData.access,
           manage_user: hasManageUser,
           manage_permission: hasManagePermission,
-          content_management: hasContentManagement
+          content_management: hasContentManagement,
+          blog_management: hasBlogManagement
         })
 
         // Karena access = TRUE, buka dashboard
