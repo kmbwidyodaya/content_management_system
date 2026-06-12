@@ -1392,6 +1392,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                                 setEditMemberName(member.name || '')
                                 setEditMemberHierarchy(member.hierarchy || 5)
                                 setEditMemberAccess(member.access === true)
+                                setEditMemberPassword('')
                                 setIsEditMemberModalOpen(true)
                               }}
                               className={`inline-flex items-center space-x-1 px-3 py-1.5 border border-slate-200 rounded-md text-xs font-semibold transition-all shadow-sm ${
@@ -1943,6 +1944,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                 <input
                   type="password"
                   required
+                  autoComplete="new-password"
                   placeholder="Masukkan kata sandi untuk akun baru..."
                   value={memberPassword}
                   onChange={(e) => setMemberPassword(e.target.value)}
@@ -2081,6 +2083,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                   </label>
                   <input
                     type="password"
+                    autoComplete="new-password"
                     placeholder="Masukkan kata sandi baru anggota..."
                     value={editMemberPassword}
                     onChange={(e) => setEditMemberPassword(e.target.value)}
