@@ -70,10 +70,10 @@ function App() {
       let currentPosName = ''
 
       try {
-        // 1. JALUR UTAMA MASUK: Periksa kolom 'access' di tabel 'user'
+        // 1. JALUR UTAMA MASUK: Periksa kolom 'access', 'hierarchy', dan 'name' di tabel 'user' secara bersamaan
         const { data: dbUser, error: dbUserError } = await supabase
           .from('user')
-          .select('access')
+          .select('access, hierarchy, name')
           .eq('user_id', user.id)
           .maybeSingle()
 
@@ -86,6 +86,10 @@ function App() {
         }
 
         userData.access = dbUser.access === true
+        if (dbUser.name) userData.name = dbUser.name
+        if (dbUser.hierarchy !== null && dbUser.hierarchy !== undefined) {
+          userData.hierarchy = Number(dbUser.hierarchy)
+        }
 
         // Jika access FALSE, langsung batasi
         if (!userData.access) {
@@ -94,37 +98,57 @@ function App() {
           return
         }
 
-        // 2. QUERY CADANGAN DETAIL PROFIL (FAIL-SAFE) - Menggunakan kolom 'name' (bukan 'full_name' / 'email')
-        try {
-          const { data: profileData } = await supabase
-            .from('user')
-            .select('hierarchy, name')
-            .eq('user_id', user.id)
-            .maybeSingle()
+        // 2. QUERY JABATAN, ADMINISTRATOR, & PERIZINAN SECARA PARALEL (PROMISE.ALL)
+        let posData = null
+        let adminData = null
+        let permData = null
 
-          if (profileData) {
-            if (profileData.name) userData.name = profileData.name
-            if (profileData.hierarchy !== null && profileData.hierarchy !== undefined) {
-              userData.hierarchy = Number(profileData.hierarchy)
-            }
+        const fetchPermissionData = async (hierarchy) => {
+          try {
+            const { data, error } = await supabase
+              .from('permission')
+              .select('manage_user, content_management, blog_management')
+              .eq('hierarchy', hierarchy)
+              .maybeSingle()
+            if (!error && data) return data
+
+            // Fallback jika ada error struktur kolom
+            const { data: fallbackData } = await supabase
+              .from('permission')
+              .select('manage_user, blog_management')
+              .eq('hierarchy', hierarchy)
+              .maybeSingle()
+            return fallbackData || null
+          } catch (e) {
+            return null
           }
-        } catch (profileErr) {
-          console.warn('Gagal memuat detail profil tambahan (opsional):', profileErr)
         }
 
-        // 3. AMBIL JABATAN SECARA DINAMIS DARI TABEL POSITION (FAIL-SAFE)
-        try {
-          const { data: posData, error: posError } = await supabase
-            .from('position')
-            .select('position')
-            .eq('hierarchy', userData.hierarchy)
-            .maybeSingle()
-          
-          if (!posError && posData && posData.position) {
-            currentPosName = posData.position
+        const safeFetch = async (queryPromise) => {
+          try {
+            const res = await queryPromise
+            return res
+          } catch (e) {
+            return { data: null, error: e }
           }
-        } catch (posErr) {
-          console.warn('Gagal memuat nama jabatan (opsional):', posErr)
+        }
+
+        try {
+          const [posRes, adminRes, permResVal] = await Promise.all([
+            safeFetch(supabase.from('position').select('position').eq('hierarchy', userData.hierarchy).maybeSingle()),
+            safeFetch(supabase.from('administrator').select('manage_permission').eq('hierarchy', userData.hierarchy).maybeSingle()),
+            fetchPermissionData(userData.hierarchy)
+          ])
+
+          posData = posRes?.data
+          adminData = adminRes?.data
+          permData = permResVal
+        } catch (parallelErr) {
+          console.warn('Gagal memuat detail perizinan secara paralel:', parallelErr)
+        }
+
+        if (posData && posData.position) {
+          currentPosName = posData.position
         }
 
         if (!currentPosName) {
@@ -142,7 +166,7 @@ function App() {
           }
         }
 
-        // 4. AMBIL DETAIL PERIZINAN (FAIL-SAFE)
+        // 3. AMBIL DETAIL PERIZINAN DENGAN FALLBACK JIKA DATA TIDAK DITEMUKAN DI DB
         let hasManageUser = false
         let hasManagePermission = false
         let hasContentManagement = false
@@ -176,42 +200,16 @@ function App() {
           hasBlogManagement = false
         }
 
-        try {
-          const { data: adminData } = await supabase
-            .from('administrator')
-            .select('manage_permission')
-            .eq('hierarchy', userData.hierarchy)
-            .maybeSingle()
-          if (adminData) {
-            hasManagePermission = adminData.manage_permission === true
-          }
-        } catch (adminErr) {
-          console.warn('Gagal memuat izin administrator (opsional):', adminErr)
+        if (adminData) {
+          hasManagePermission = adminData.manage_permission === true
         }
 
-        try {
-          const { data: permData } = await supabase
-            .from('permission')
-            .select('manage_user, content_management, blog_management')
-            .eq('hierarchy', userData.hierarchy)
-            .maybeSingle()
-          if (permData) {
-            hasManageUser = permData.manage_user === true
+        if (permData) {
+          hasManageUser = permData.manage_user === true
+          if (permData.content_management !== undefined) {
             hasContentManagement = permData.content_management === true
-            hasBlogManagement = permData.blog_management === true
-          } else {
-            const { data: permFallback } = await supabase
-              .from('permission')
-              .select('manage_user, blog_management')
-              .eq('hierarchy', userData.hierarchy)
-              .maybeSingle()
-            if (permFallback) {
-              hasManageUser = permFallback.manage_user === true
-              hasBlogManagement = permFallback.blog_management === true
-            }
           }
-        } catch (permErr) {
-          console.warn('Gagal memuat detail perizinan (opsional):', permErr)
+          hasBlogManagement = permData.blog_management === true
         }
 
         const finalPositionName = currentPosName || 'Anggota / Staf'
