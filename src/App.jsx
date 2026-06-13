@@ -17,7 +17,8 @@ function App() {
   const [permissions, setPermissions] = useState({
     access: false,
     manage_permission: false,
-    blog_management: false
+    blog_management: false,
+    design_management: false
   })
 
   // 1. Listen to auth state changes
@@ -107,7 +108,7 @@ function App() {
           try {
             const { data, error } = await supabase
               .from('permission')
-              .select('manage_user, content_management, blog_management')
+              .select('manage_user, content_management, blog_management, design_management')
               .eq('hierarchy', hierarchy)
               .maybeSingle()
             if (!error && data) return data
@@ -171,6 +172,7 @@ function App() {
         let hasManagePermission = false
         let hasContentManagement = false
         let hasBlogManagement = false
+        let hasDesignManagement = false
 
         const hVal = Number(userData.hierarchy)
         if (hVal === 1) {
@@ -178,26 +180,31 @@ function App() {
           hasManagePermission = true
           hasContentManagement = true
           hasBlogManagement = true
+          hasDesignManagement = true
         } else if (hVal === 2) {
           hasManageUser = true
           hasManagePermission = false
           hasContentManagement = true
           hasBlogManagement = true
+          hasDesignManagement = true
         } else if (hVal === 3) {
           hasManageUser = false
           hasManagePermission = false
           hasContentManagement = true
           hasBlogManagement = false
+          hasDesignManagement = false
         } else if (hVal === 4) {
           hasManageUser = false
           hasManagePermission = false
           hasContentManagement = false
           hasBlogManagement = true
+          hasDesignManagement = false
         } else {
           hasManageUser = false
           hasManagePermission = false
           hasContentManagement = false
           hasBlogManagement = false
+          hasDesignManagement = false
         }
 
         if (adminData) {
@@ -210,6 +217,9 @@ function App() {
             hasContentManagement = permData.content_management === true
           }
           hasBlogManagement = permData.blog_management === true
+          if (permData.design_management !== undefined) {
+            hasDesignManagement = permData.design_management === true
+          }
         }
 
         const finalPositionName = currentPosName || 'Anggota / Staf'
@@ -223,7 +233,8 @@ function App() {
           manage_user: isAnggota ? false : hasManageUser,
           manage_permission: isAnggota ? false : hasManagePermission,
           content_management: isAnggota ? false : hasContentManagement,
-          blog_management: isAnggota ? false : hasBlogManagement
+          blog_management: isAnggota ? false : hasBlogManagement,
+          design_management: isAnggota ? false : hasDesignManagement
         })
 
         // Karena access = TRUE, buka dashboard

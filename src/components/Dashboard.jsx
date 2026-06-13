@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { supabase, supabaseAdmin } from '../supabaseClient'
 import Beranda from './Beranda'
 
-export default function Dashboard({ user, userProfile, onLogout, permissions = { access: true, manage_permission: false, manage_user: false, content_management: false, blog_management: false }, userPosition = '' }) {
+export default function Dashboard({ user, userProfile, onLogout, permissions = { access: true, manage_permission: false, manage_user: false, content_management: false, blog_management: false, design_management: false }, userPosition = '' }) {
   const isAnggota = userPosition.toLowerCase().includes('anggota')
   if (isAnggota) {
     permissions = {
@@ -11,7 +11,8 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
       manage_user: false,
       manage_permission: false,
       content_management: false,
-      blog_management: false
+      blog_management: false,
+      design_management: false
     }
   }
 
@@ -140,6 +141,8 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
   const [addBlogManagement, setAddBlogManagement] = useState(false)
   const [editContentManagement, setEditContentManagement] = useState(false)
   const [addContentManagement, setAddContentManagement] = useState(false)
+  const [editDesignManagement, setEditDesignManagement] = useState(false)
+  const [addDesignManagement, setAddDesignManagement] = useState(false)
 
   // Fetch Contents
   const fetchContents = async () => {
@@ -335,7 +338,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
           .insert([
             {
               description: payload.description,
-              link: payload.link || null,
+              link: null, // Link starts as null when creating a request
               status: 'Pending',
               user_id: user.id
             }
@@ -344,13 +347,18 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
         if (error) throw error
         setSuccessMsg('Permintaan desain baru berhasil ditambahkan!')
       } else {
+        const updatePayload = {
+          description: payload.description
+        }
+
+        if (permissions.design_management) {
+          updatePayload.link = payload.link || null
+          updatePayload.status = payload.status
+        }
+
         const { error } = await supabase
           .from('design_request')
-          .update({
-            description: payload.description,
-            link: payload.link || null,
-            status: payload.status
-          })
+          .update(updatePayload)
           .eq('request_id', currentRequestId)
 
         if (error) throw error
@@ -636,7 +644,8 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
           hierarchy: Number(editingPermissionRow.hierarchy),
           manage_user: editManageUser,
           content_management: editContentManagement,
-          blog_management: editBlogManagement
+          blog_management: editBlogManagement,
+          design_management: editDesignManagement
         })
 
       if (permError) throw permError
@@ -707,7 +716,8 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
             hierarchy: Number(addPermissionHierarchy),
             manage_user: addManageUser,
             content_management: addContentManagement,
-            blog_management: addBlogManagement
+            blog_management: addBlogManagement,
+            design_management: addDesignManagement
           }
         ])
 
@@ -731,6 +741,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
       setAddManageUser(false)
       setAddContentManagement(false)
       setAddBlogManagement(false)
+      setAddDesignManagement(false)
       setAddManagePermission(false)
       fetchPermissionsList()
     } catch (err) {
@@ -791,6 +802,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
           manage_user: p ? p.manage_user === true : false,
           content_management: p ? p.content_management === true : false,
           blog_management: p ? p.blog_management === true : false,
+          design_management: p ? p.design_management === true : false,
           manage_permission: a ? a.manage_permission === true : false
         }
       }).sort((a, b) => Number(a.hierarchy) - Number(b.hierarchy))
@@ -1296,7 +1308,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                       <tr>
                         <th className="px-6 py-4">ID</th>
                         <th className="px-6 py-4">Deskripsi</th>
-                        <th className="px-6 py-4">Link Referensi</th>
+                        <th className="px-6 py-4">Link Hasil Desain</th>
                         <th className="px-6 py-4">Status</th>
                         <th className="px-6 py-4">Created by</th>
                         <th className="px-6 py-4 text-right">Aksi</th>
@@ -1351,7 +1363,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                       <tr>
                         <th className="px-6 py-4">ID</th>
                         <th className="px-6 py-4">Deskripsi</th>
-                        <th className="px-6 py-4">Link Referensi</th>
+                        <th className="px-6 py-4">Link Hasil Desain</th>
                         <th className="px-6 py-4">Status</th>
                         <th className="px-6 py-4">Created by</th>
                         <th className="px-6 py-4 text-right">Aksi</th>
@@ -1391,7 +1403,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                                   </a>
                                 </div>
                               ) : (
-                                <span className="text-slate-400 italic">Tidak ada link</span>
+                                <span className="text-slate-400 italic">Belum ada hasil</span>
                               )}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -1918,6 +1930,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                         <th className="px-6 py-4 text-center">Izin Kelola Anggota (public.permission)</th>
                         <th className="px-6 py-4 text-center">Izin Kelola Konten Video (public.permission)</th>
                         <th className="px-6 py-4 text-center">Izin Kelola Blog (public.permission)</th>
+                        <th className="px-6 py-4 text-center">Izin Kelola Hasil Desain (public.permission)</th>
                         {cek_akses_manage_permission() && <th className="px-6 py-4 text-right">Aksi</th>}
                       </tr>
                     </thead>
@@ -1951,6 +1964,14 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                               {perm.blog_management ? 'Ya (TRUE)' : 'Tidak (FALSE)'}
                             </span>
                           </td>
+                          <td className="px-6 py-4 text-center">
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${perm.design_management
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                              : 'bg-rose-100 text-rose-800 border border-rose-200'
+                              }`}>
+                              {perm.design_management ? 'Ya (TRUE)' : 'Tidak (FALSE)'}
+                            </span>
+                          </td>
                           {cek_akses_manage_permission() && (
                             <td className="px-6 py-4 whitespace-nowrap text-right">
                               <button
@@ -1959,6 +1980,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                                   setEditManageUser(perm.manage_user === true)
                                   setEditContentManagement(perm.content_management === true)
                                   setEditBlogManagement(perm.blog_management === true)
+                                  setEditDesignManagement(perm.design_management === true)
                                   setEditManagePermission(perm.manage_permission === true)
                                   setIsEditPermissionModalOpen(true)
                                 }}
@@ -2706,7 +2728,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                   </label>
                 </div>
 
-                <div className="flex items-center space-x-3">
+                 <div className="flex items-center space-x-3">
                   <input
                     type="checkbox"
                     id="editBlogManagement"
@@ -2716,6 +2738,19 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                   />
                   <label htmlFor="editBlogManagement" className="text-sm font-semibold text-slate-700 cursor-pointer select-none">
                     Izin Kelola Blog (public.permission.blog_management)
+                  </label>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="editDesignManagement"
+                    checked={editDesignManagement}
+                    onChange={(e) => setEditDesignManagement(e.target.checked)}
+                    className="h-4.5 w-4.5 text-amber-600 focus:ring-amber-500 border-slate-300 rounded cursor-pointer"
+                  />
+                  <label htmlFor="editDesignManagement" className="text-sm font-semibold text-slate-700 cursor-pointer select-none">
+                    Izin Kelola Hasil Desain (public.permission.design_management)
                   </label>
                 </div>
 
@@ -2905,7 +2940,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                   </label>
                 </div>
 
-                <div className="flex items-center space-x-3">
+                 <div className="flex items-center space-x-3">
                   <input
                     type="checkbox"
                     id="addBlogManagement"
@@ -2915,6 +2950,19 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                   />
                   <label htmlFor="addBlogManagement" className="text-sm font-semibold text-slate-700 cursor-pointer select-none">
                     Izin Kelola Blog (blog_management)
+                  </label>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="addDesignManagement"
+                    checked={addDesignManagement}
+                    onChange={(e) => setAddDesignManagement(e.target.checked)}
+                    className="h-4.5 w-4.5 text-amber-600 focus:ring-amber-500 border-slate-300 rounded cursor-pointer"
+                  />
+                  <label htmlFor="addDesignManagement" className="text-sm font-semibold text-slate-700 cursor-pointer select-none">
+                    Izin Kelola Hasil Desain (design_management)
                   </label>
                 </div>
 
@@ -3092,38 +3140,50 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                 ></textarea>
               </div>
 
-              <div>
-                <label htmlFor="designFormLink" className="block text-sm font-semibold text-slate-700 mb-1">
-                  Link Referensi / Aset (Opsional)
-                </label>
-                <input
-                  type="url"
-                  id="designFormLink"
-                  placeholder="https://drive.google.com/..."
-                  value={designFormLink}
-                  onChange={(e) => setDesignFormLink(e.target.value)}
-                  className="block w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 focus:bg-white transition-all text-sm"
-                />
-              </div>
-
               {designModalMode === 'edit' && (
-                <div>
-                  <label htmlFor="designFormStatus" className="block text-sm font-semibold text-slate-700 mb-1">
-                    Status Request <span className="text-amber-600">*</span>
-                  </label>
-                  <select
-                    id="designFormStatus"
-                    required
-                    value={designFormStatus}
-                    onChange={(e) => setDesignFormStatus(e.target.value)}
-                    className="block w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 focus:bg-white transition-all text-sm cursor-pointer"
-                  >
-                    <option value="Pending">Pending</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
-                </div>
+                <>
+                  <div>
+                    <label htmlFor="designFormLink" className="block text-sm font-semibold text-slate-700 mb-1">
+                      Link Hasil Desain {permissions.design_management && <span className="text-amber-600 font-normal">(Khusus Desainer/Admin)</span>}
+                    </label>
+                    <input
+                      type="url"
+                      id="designFormLink"
+                      disabled={!permissions.design_management}
+                      placeholder={permissions.design_management ? "https://drive.google.com/..." : "Belum ada link hasil desain"}
+                      value={designFormLink}
+                      onChange={(e) => setDesignFormLink(e.target.value)}
+                      className={`block w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 focus:bg-white transition-all text-sm ${
+                        !permissions.design_management
+                          ? 'bg-slate-100 text-slate-500 cursor-not-allowed'
+                          : 'bg-slate-50'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="designFormStatus" className="block text-sm font-semibold text-slate-700 mb-1">
+                      Status Request {permissions.design_management && <span className="text-amber-600 font-normal">(Khusus Desainer/Admin)</span>}
+                    </label>
+                    <select
+                      id="designFormStatus"
+                      required
+                      disabled={!permissions.design_management}
+                      value={designFormStatus}
+                      onChange={(e) => setDesignFormStatus(e.target.value)}
+                      className={`block w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 focus:bg-white transition-all text-sm ${
+                        !permissions.design_management
+                          ? 'bg-slate-100 text-slate-500 cursor-not-allowed'
+                          : 'bg-slate-50 cursor-pointer'
+                      }`}
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Completed">Completed</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                </>
               )}
 
               {/* Form Buttons */}
