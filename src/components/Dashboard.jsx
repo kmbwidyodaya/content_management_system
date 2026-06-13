@@ -118,7 +118,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
   const [blogModalMode, setBlogModalMode] = useState('create') // 'create' | 'edit'
   const [currentBlogId, setCurrentBlogId] = useState(null)
   const [blogFormTitle, setBlogFormTitle] = useState('')
-  const [blogFormSubtitle, setBlogFormSubtitle] = useState('')
+  const [blogFormEmbedLink, setBlogFormEmbedLink] = useState('')
   const [blogFormText, setBlogFormText] = useState('')
   const [blogFormSubmitting, setBlogFormSubmitting] = useState(false)
 
@@ -195,19 +195,19 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
     try {
       const payload = {
         title: blogFormTitle.trim(),
-        subtitle: blogFormSubtitle.trim(),
+        embed_link: blogFormEmbedLink.trim(),
         text: blogFormText.trim()
       }
 
       if (blogModalMode === 'create') {
         const authorName = userProfile?.name || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'Admin'
-        // HANYA mengirimkan properti title, subtitle, dan text (tanpa id) beserta author_name
+        // HANYA mengirimkan properti title, embed_link, dan text (tanpa id) beserta author_name
         const { error } = await supabase
           .from('blog_management')
           .insert([
             {
               title: payload.title,
-              subtitle: payload.subtitle,
+              embed_link: payload.embed_link,
               text: payload.text,
               author_name: authorName
             }
@@ -221,7 +221,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
           .from('blog_management')
           .update({
             title: payload.title,
-            subtitle: payload.subtitle,
+            embed_link: payload.embed_link,
             text: payload.text
           })
           .eq('blog_id', currentBlogId)
@@ -232,7 +232,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
 
       setIsBlogModalOpen(false)
       setBlogFormTitle('')
-      setBlogFormSubtitle('')
+      setBlogFormEmbedLink('')
       setBlogFormText('')
       fetchBlogs()
     } catch (err) {
@@ -251,7 +251,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
     setBlogModalMode('create')
     setCurrentBlogId(null)
     setBlogFormTitle('')
-    setBlogFormSubtitle('')
+    setBlogFormEmbedLink('')
     setBlogFormText('')
     setIsBlogModalOpen(true)
   }
@@ -260,7 +260,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
     setBlogModalMode('edit')
     setCurrentBlogId(blog.blog_id)
     setBlogFormTitle(blog.title || '')
-    setBlogFormSubtitle(blog.subtitle || '')
+    setBlogFormEmbedLink(blog.embed_link || '')
     setBlogFormText(blog.text || '')
     setIsBlogModalOpen(true)
   }
@@ -1673,7 +1673,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                         <tr>
                           <th className="px-6 py-4">ID</th>
                           <th className="px-6 py-4">Judul Artikel</th>
-                          <th className="px-6 py-4">Sub Judul</th>
+                          <th className="px-6 py-4">Link Foto</th>
                           <th className="px-6 py-4">Isi Konten (Ringkasan)</th>
                           <th className="px-6 py-4">Created by</th>
                           <th className="px-6 py-4">Tanggal Dibuat</th>
@@ -1701,7 +1701,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                   </div>
                 ) : blogs.filter(b =>
                   (b.title || '').toLowerCase().includes(blogsSearchQuery.toLowerCase()) ||
-                  (b.subtitle || '').toLowerCase().includes(blogsSearchQuery.toLowerCase()) ||
+                  (b.embed_link || '').toLowerCase().includes(blogsSearchQuery.toLowerCase()) ||
                   (b.text || '').toLowerCase().includes(blogsSearchQuery.toLowerCase())
                 ).length === 0 ? (
                   /* Empty State */
@@ -1730,7 +1730,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                         <tr>
                           <th className="px-6 py-4">ID</th>
                           <th className="px-6 py-4">Judul Artikel</th>
-                          <th className="px-6 py-4">Sub Judul</th>
+                          <th className="px-6 py-4">Link Foto</th>
                           <th className="px-6 py-4">Isi Konten (Ringkasan)</th>
                           <th className="px-6 py-4">Created by</th>
                           <th className="px-6 py-4">Tanggal Dibuat</th>
@@ -1741,14 +1741,35 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                         {blogs
                           .filter(b =>
                             (b.title || '').toLowerCase().includes(blogsSearchQuery.toLowerCase()) ||
-                            (b.subtitle || '').toLowerCase().includes(blogsSearchQuery.toLowerCase()) ||
+                            (b.embed_link || '').toLowerCase().includes(blogsSearchQuery.toLowerCase()) ||
                             (b.text || '').toLowerCase().includes(blogsSearchQuery.toLowerCase())
                           )
                           .map((blog) => (
                             <tr key={blog.blog_id} className="hover:bg-slate-50/70 transition-colors">
                               <td className="px-6 py-4 font-mono text-xs text-slate-500 font-semibold">{blog.blog_id}</td>
                               <td className="px-6 py-4 font-semibold text-slate-900">{blog.title}</td>
-                              <td className="px-6 py-4 text-slate-600 max-w-xs truncate">{blog.subtitle || '-'}</td>
+                              <td className="px-6 py-4 max-w-xs">
+                                {blog.embed_link ? (
+                                  <div className="flex items-center space-x-1.5">
+                                    <code className="text-xs font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded truncate max-w-[150px]" title={blog.embed_link}>
+                                      {blog.embed_link}
+                                    </code>
+                                    <a
+                                      href={blog.embed_link}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-slate-400 hover:text-amber-500 transition-colors flex-shrink-0"
+                                      title="Buka Link Foto"
+                                    >
+                                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                      </svg>
+                                    </a>
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-400 italic">Tidak ada foto</span>
+                                )}
+                              </td>
                               <td className="px-6 py-4 text-slate-500 max-w-xs truncate">
                                 {blog.text ? (blog.text.length > 80 ? blog.text.substring(0, 80) + '...' : blog.text) : '-'}
                               </td>
@@ -2614,16 +2635,16 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
               </div>
 
               <div>
-                <label htmlFor="blogFormSubtitle" className="block text-sm font-semibold text-slate-700 mb-1">
-                  Sub Judul <span className="text-amber-600">*</span>
+                <label htmlFor="blogFormEmbedLink" className="block text-sm font-semibold text-slate-700 mb-1">
+                  Link Foto / Gambar <span className="text-amber-600">*</span>
                 </label>
                 <input
-                  type="text"
-                  id="blogFormSubtitle"
+                  type="url"
+                  id="blogFormEmbedLink"
                   required
-                  placeholder="Masukkan sub judul artikel blog..."
-                  value={blogFormSubtitle}
-                  onChange={(e) => setBlogFormSubtitle(e.target.value)}
+                  placeholder="https://contoh.com/foto.jpg"
+                  value={blogFormEmbedLink}
+                  onChange={(e) => setBlogFormEmbedLink(e.target.value)}
                   className="block w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 focus:bg-white transition-all text-sm"
                 />
               </div>
