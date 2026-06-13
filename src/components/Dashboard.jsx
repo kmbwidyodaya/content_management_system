@@ -889,8 +889,8 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                 setIsSidebarOpen(false);
               }}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all cursor-pointer ${activeMenu === 'beranda'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 }`}
             >
               <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -898,6 +898,16 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
               </svg>
               <span>Beranda</span>
             </button>
+          )}
+
+          {/* Divider & Section Title: Website Management */}
+          {(permissions.content_management || permissions.blog_management) && (
+            <div className="pt-3 pb-1">
+              <hr className="border-slate-200 mb-2.5" />
+              <div className="px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Website Management
+              </div>
+            </div>
           )}
 
           {/* Kelola Konten Video: Visible if permissions.content_management === true */}
@@ -908,8 +918,8 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                 setIsSidebarOpen(false);
               }}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all cursor-pointer ${activeMenu === 'konten'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 }`}
             >
               <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -927,8 +937,8 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                 setIsSidebarOpen(false);
               }}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all cursor-pointer ${activeMenu === 'blog'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 }`}
             >
               <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -936,6 +946,16 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
               </svg>
               <span>Kelola Blog</span>
             </button>
+          )}
+
+          {/* Divider & Section Title: Organization Management */}
+          {(permissions.manage_user || permissions.manage_permission) && (
+            <div className="pt-3 pb-1">
+              <hr className="border-slate-200 mb-2.5" />
+              <div className="px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Organization Management
+              </div>
+            </div>
           )}
 
           {/* Kelola Anggota: Visible if permissions.manage_user === true */}
@@ -946,8 +966,8 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                 setIsSidebarOpen(false);
               }}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all cursor-pointer ${activeMenu === 'anggota'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 }`}
             >
               <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -965,8 +985,8 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                 setIsSidebarOpen(false);
               }}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all cursor-pointer ${activeMenu === 'jabatan'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 }`}
             >
               <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -984,8 +1004,8 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                 setIsSidebarOpen(false);
               }}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all cursor-pointer ${activeMenu === 'akses'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 }`}
             >
               <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1375,10 +1395,10 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                                 disabled={!canEditThisMember}
                                 onClick={() => handleToggleMemberAccess(member.user_id, member.access)}
                                 className={`inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ${!canEditThisMember
-                                    ? 'bg-slate-50 text-slate-400 border border-slate-100 cursor-not-allowed'
-                                    : member.access
-                                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 hover:bg-emerald-200 cursor-pointer'
-                                      : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 cursor-pointer'
+                                  ? 'bg-slate-50 text-slate-400 border border-slate-100 cursor-not-allowed'
+                                  : member.access
+                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 hover:bg-emerald-200 cursor-pointer'
+                                    : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 cursor-pointer'
                                   }`}
                                 title={canEditThisMember ? "Ubah Izin Akses" : "Peran dilindungi"}
                               >
@@ -1398,8 +1418,8 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                                   setIsEditMemberModalOpen(true)
                                 }}
                                 className={`inline-flex items-center space-x-1 px-3 py-1.5 border border-slate-200 rounded-md text-xs font-semibold transition-all shadow-sm ${canEditThisMember
-                                    ? 'text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-900 cursor-pointer'
-                                    : 'text-slate-300 bg-slate-50 cursor-not-allowed border-slate-100'
+                                  ? 'text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-900 cursor-pointer'
+                                  : 'text-slate-300 bg-slate-50 cursor-not-allowed border-slate-100'
                                   }`}
                                 title={canEditThisMember ? "Edit Anggota" : "Peran dilindungi"}
                               >
@@ -1566,24 +1586,24 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                           </td>
                           <td className="px-6 py-4 text-center">
                             <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${perm.manage_user
-                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                                : 'bg-rose-100 text-rose-800 border border-rose-200'
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                              : 'bg-rose-100 text-rose-800 border border-rose-200'
                               }`}>
                               {perm.manage_user ? 'Ya (TRUE)' : 'Tidak (FALSE)'}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-center">
                             <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${perm.content_management
-                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                                : 'bg-rose-100 text-rose-800 border border-rose-200'
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                              : 'bg-rose-100 text-rose-800 border border-rose-200'
                               }`}>
                               {perm.content_management ? 'Ya (TRUE)' : 'Tidak (FALSE)'}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-center">
                             <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${perm.blog_management
-                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                                : 'bg-rose-100 text-rose-800 border border-rose-200'
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                              : 'bg-rose-100 text-rose-800 border border-rose-200'
                               }`}>
                               {perm.blog_management ? 'Ya (TRUE)' : 'Tidak (FALSE)'}
                             </span>
