@@ -57,7 +57,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalMode, setModalMode] = useState('create') // 'create' or 'edit'
   const [currentContentId, setCurrentContentId] = useState(null)
-  
+
   // Form State
   const [formTitle, setFormTitle] = useState('')
   const [formEmbedLink, setFormEmbedLink] = useState('')
@@ -368,8 +368,8 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
         .upsert(payload)
 
       if (error) {
-        const isEmailError = error.code === '42703' || 
-                             (error.message && (error.message.includes('email') || error.message.includes('schema cache')));
+        const isEmailError = error.code === '42703' ||
+          (error.message && (error.message.includes('email') || error.message.includes('schema cache')));
         if (isEmailError) {
           console.warn('Email column does not exist in user table, retrying without email field.')
           const { email, ...safePayload } = payload
@@ -850,9 +850,8 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
 
       {/* Sidebar Drawer Container */}
       <aside
-        className={`fixed inset-y-0 left-0 w-80 bg-white shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed inset-y-0 left-0 w-80 bg-white shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         {/* Sidebar Header */}
         <div className="h-20 px-6 border-b border-slate-100 flex items-center justify-between">
@@ -885,11 +884,10 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                 setActiveMenu('beranda');
                 setIsSidebarOpen(false);
               }}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all cursor-pointer ${
-                activeMenu === 'beranda'
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all cursor-pointer ${activeMenu === 'beranda'
                   ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              }`}
+                }`}
             >
               <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -898,23 +896,22 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
             </button>
           )}
 
-          {/* Kelola Konten: Visible if permissions.content_management === true */}
+          {/* Kelola Konten Video: Visible if permissions.content_management === true */}
           {permissions.content_management && (
             <button
               onClick={() => {
                 setActiveMenu('konten');
                 setIsSidebarOpen(false);
               }}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all cursor-pointer ${
-                activeMenu === 'konten'
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all cursor-pointer ${activeMenu === 'konten'
                   ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              }`}
+                }`}
             >
               <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <span>Kelola Konten</span>
+              <span>Kelola Konten Video</span>
             </button>
           )}
 
@@ -925,11 +922,10 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                 setActiveMenu('blog');
                 setIsSidebarOpen(false);
               }}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all cursor-pointer ${
-                activeMenu === 'blog'
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all cursor-pointer ${activeMenu === 'blog'
                   ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              }`}
+                }`}
             >
               <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
@@ -945,11 +941,10 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                 setActiveMenu('anggota');
                 setIsSidebarOpen(false);
               }}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all cursor-pointer ${
-                activeMenu === 'anggota'
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all cursor-pointer ${activeMenu === 'anggota'
                   ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              }`}
+                }`}
             >
               <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -965,11 +960,10 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                 setActiveMenu('jabatan');
                 setIsSidebarOpen(false);
               }}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all cursor-pointer ${
-                activeMenu === 'jabatan'
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all cursor-pointer ${activeMenu === 'jabatan'
                   ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              }`}
+                }`}
             >
               <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -985,11 +979,10 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                 setActiveMenu('akses');
                 setIsSidebarOpen(false);
               }}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all cursor-pointer ${
-                activeMenu === 'akses'
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all cursor-pointer ${activeMenu === 'akses'
                   ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              }`}
+                }`}
             >
               <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m-2 4a2 2 0 012 2m-8-3a2 2 0 012-2m-2 4a2 2 0 012-2m-8-3a2 2 0 012-2m-2 4a2 2 0 012-2m18 1a6 6 0 01-10.124 4.376L3 21l1.624-5.876A6 6 0 1121 12z" />
@@ -1058,7 +1051,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-8">
-        
+
         {/* Error Alert inside main container */}
         {errorMsg && (
           <div className="mb-6 rounded-xl bg-red-50 border border-red-200 p-4 flex items-center justify-between shadow-sm">
@@ -1081,17 +1074,17 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
           <Beranda user={user} />
         )}
 
-        {/* -------------------- TAB: KELOLA KONTEN -------------------- */}
+        {/* -------------------- TAB: KELOLA KONTEN VIDEO -------------------- */}
         {activeMenu === 'konten' && (
           <>
             {/* Dashboard Title & Actions Bar */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0 pb-6 border-b border-slate-200">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight text-slate-900 m-0">
-                  Kelola Konten
+                  Kelola Konten Video
                 </h1>
                 <p className="text-sm text-slate-500 mt-1">
-                  Tambahkan, perbarui, atau hapus konten publikasi KMB Widyodaya.
+                  Tambahkan, perbarui, atau hapus konten video KMB Widyodaya.
                 </p>
               </div>
 
@@ -1355,60 +1348,58 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
 
                         return (
                           <tr key={member.user_id} className="hover:bg-slate-50/70 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap font-mono text-xs font-semibold text-slate-500">
-                            {index + 1}
-                          </td>
-                          <td className="px-6 py-4 font-semibold text-slate-900">
-                            {member.name || <span className="text-slate-400 italic">Belum Diatur</span>}
-                          </td>
-                          <td className="px-6 py-4 text-slate-600">
-                            {member.email || <span className="text-slate-400 italic">Tidak Tersedia</span>}
-                          </td>
-                          <td className="px-6 py-4 font-semibold text-slate-700">
-                            {getPositionName(member.hierarchy, positions)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-center">
-                            <button
-                              disabled={!canEditThisMember}
-                              onClick={() => handleToggleMemberAccess(member.user_id, member.access)}
-                              className={`inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ${
-                                !canEditThisMember
-                                  ? 'bg-slate-50 text-slate-400 border border-slate-100 cursor-not-allowed'
-                                  : member.access
-                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 hover:bg-emerald-200 cursor-pointer'
-                                    : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 cursor-pointer'
-                              }`}
-                              title={canEditThisMember ? "Ubah Izin Akses" : "Peran dilindungi"}
-                            >
-                              <span className={`h-1.5 w-1.5 rounded-full mr-1.5 ${member.access ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
-                              {member.access ? 'Aktif (Diizinkan)' : 'Nonaktif (Ditolak)'}
-                            </button>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
-                            <button
-                              disabled={!canEditThisMember}
-                              onClick={() => {
-                                setEditingMember(member)
-                                setEditMemberName(member.name || '')
-                                setEditMemberHierarchy(member.hierarchy || 5)
-                                setEditMemberAccess(member.access === true)
-                                setEditMemberPassword('')
-                                setIsEditMemberModalOpen(true)
-                              }}
-                              className={`inline-flex items-center space-x-1 px-3 py-1.5 border border-slate-200 rounded-md text-xs font-semibold transition-all shadow-sm ${
-                                canEditThisMember
-                                  ? 'text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-900 cursor-pointer'
-                                  : 'text-slate-300 bg-slate-50 cursor-not-allowed border-slate-100'
-                              }`}
-                              title={canEditThisMember ? "Edit Anggota" : "Peran dilindungi"}
-                            >
-                              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                              <span>Edit</span>
-                            </button>
-                          </td>
-                        </tr>
+                            <td className="px-6 py-4 whitespace-nowrap font-mono text-xs font-semibold text-slate-500">
+                              {index + 1}
+                            </td>
+                            <td className="px-6 py-4 font-semibold text-slate-900">
+                              {member.name || <span className="text-slate-400 italic">Belum Diatur</span>}
+                            </td>
+                            <td className="px-6 py-4 text-slate-600">
+                              {member.email || <span className="text-slate-400 italic">Tidak Tersedia</span>}
+                            </td>
+                            <td className="px-6 py-4 font-semibold text-slate-700">
+                              {getPositionName(member.hierarchy, positions)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                              <button
+                                disabled={!canEditThisMember}
+                                onClick={() => handleToggleMemberAccess(member.user_id, member.access)}
+                                className={`inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ${!canEditThisMember
+                                    ? 'bg-slate-50 text-slate-400 border border-slate-100 cursor-not-allowed'
+                                    : member.access
+                                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 hover:bg-emerald-200 cursor-pointer'
+                                      : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 cursor-pointer'
+                                  }`}
+                                title={canEditThisMember ? "Ubah Izin Akses" : "Peran dilindungi"}
+                              >
+                                <span className={`h-1.5 w-1.5 rounded-full mr-1.5 ${member.access ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
+                                {member.access ? 'Aktif (Diizinkan)' : 'Nonaktif (Ditolak)'}
+                              </button>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right">
+                              <button
+                                disabled={!canEditThisMember}
+                                onClick={() => {
+                                  setEditingMember(member)
+                                  setEditMemberName(member.name || '')
+                                  setEditMemberHierarchy(member.hierarchy || 5)
+                                  setEditMemberAccess(member.access === true)
+                                  setEditMemberPassword('')
+                                  setIsEditMemberModalOpen(true)
+                                }}
+                                className={`inline-flex items-center space-x-1 px-3 py-1.5 border border-slate-200 rounded-md text-xs font-semibold transition-all shadow-sm ${canEditThisMember
+                                    ? 'text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-900 cursor-pointer'
+                                    : 'text-slate-300 bg-slate-50 cursor-not-allowed border-slate-100'
+                                  }`}
+                                title={canEditThisMember ? "Edit Anggota" : "Peran dilindungi"}
+                              >
+                                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                                <span>Edit</span>
+                              </button>
+                            </td>
+                          </tr>
                         );
                       })}
                     </tbody>
@@ -1471,7 +1462,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-slate-700">
-                       {positions.map((pos) => (
+                      {positions.map((pos) => (
                         <tr key={pos.hierarchy} className="hover:bg-slate-50/70 transition-colors">
                           <td className="px-6 py-4 font-mono text-xs text-slate-500 font-semibold">{String(pos.hierarchy)}</td>
                           <td className="px-6 py-4 font-semibold text-slate-900">
@@ -1552,7 +1543,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                       <tr>
                         <th className="px-6 py-4">Nama Jabatan</th>
                         <th className="px-6 py-4 text-center">Izin Kelola Anggota (public.permission)</th>
-                        <th className="px-6 py-4 text-center">Izin Kelola Konten (public.permission)</th>
+                        <th className="px-6 py-4 text-center">Izin Kelola Konten Video (public.permission)</th>
                         <th className="px-6 py-4 text-center">Izin Kelola Blog (public.permission)</th>
                         {cek_akses_manage_permission() && <th className="px-6 py-4 text-right">Aksi</th>}
                       </tr>
@@ -1564,29 +1555,26 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                             {getPositionName(perm.hierarchy, positions)}
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
-                              perm.manage_user
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${perm.manage_user
                                 ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                                 : 'bg-rose-100 text-rose-800 border border-rose-200'
-                            }`}>
+                              }`}>
                               {perm.manage_user ? 'Ya (TRUE)' : 'Tidak (FALSE)'}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
-                              perm.content_management
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${perm.content_management
                                 ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                                 : 'bg-rose-100 text-rose-800 border border-rose-200'
-                            }`}>
+                              }`}>
                               {perm.content_management ? 'Ya (TRUE)' : 'Tidak (FALSE)'}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
-                              perm.blog_management
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${perm.blog_management
                                 ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                                 : 'bg-rose-100 text-rose-800 border border-rose-200'
-                            }`}>
+                              }`}>
                               {perm.blog_management ? 'Ya (TRUE)' : 'Tidak (FALSE)'}
                             </span>
                           </td>
@@ -1699,7 +1687,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                   <div className="mb-6 rounded-xl bg-red-50 border border-red-200 p-4 shadow-sm text-red-800 text-sm">
                     {blogsError}
                   </div>
-                ) : blogs.filter(b => 
+                ) : blogs.filter(b =>
                   (b.title || '').toLowerCase().includes(blogsSearchQuery.toLowerCase()) ||
                   (b.subtitle || '').toLowerCase().includes(blogsSearchQuery.toLowerCase()) ||
                   (b.text || '').toLowerCase().includes(blogsSearchQuery.toLowerCase())
@@ -1738,7 +1726,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                       </thead>
                       <tbody className="divide-y divide-slate-100 text-slate-700">
                         {blogs
-                          .filter(b => 
+                          .filter(b =>
                             (b.title || '').toLowerCase().includes(blogsSearchQuery.toLowerCase()) ||
                             (b.subtitle || '').toLowerCase().includes(blogsSearchQuery.toLowerCase()) ||
                             (b.text || '').toLowerCase().includes(blogsSearchQuery.toLowerCase())
@@ -1797,7 +1785,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
       {isModalOpen && activeMenu === 'konten' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm">
           <div className="relative w-full max-w-lg bg-white p-6 sm:p-8 rounded-2xl shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
-            
+
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-900">
@@ -1891,7 +1879,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
       {isMemberModalOpen && activeMenu === 'anggota' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm">
           <div className="relative w-full max-w-lg bg-white p-6 sm:p-8 rounded-2xl shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
-            
+
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-900">
@@ -2026,7 +2014,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
       {isEditMemberModalOpen && activeMenu === 'anggota' && editingMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm">
           <div className="relative w-full max-w-lg bg-white p-6 sm:p-8 rounded-2xl shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
-            
+
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-900">
@@ -2063,7 +2051,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                 />
               </div>
 
-               <div>
+              <div>
                 <label className="block text-sm font-medium text-slate-500 mb-1">
                   Email
                 </label>
@@ -2173,7 +2161,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
       {isEditPositionModalOpen && activeMenu === 'jabatan' && editingPosition && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm">
           <div className="relative w-full max-w-lg bg-white p-6 sm:p-8 rounded-2xl shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
-            
+
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-900">
@@ -2255,7 +2243,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
       {isEditPermissionModalOpen && activeMenu === 'akses' && editingPermissionRow && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm">
           <div className="relative w-full max-w-lg bg-white p-6 sm:p-8 rounded-2xl shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
-            
+
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-900">
@@ -2275,7 +2263,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
             </div>
 
             {/* Modal Form */}
-             <form onSubmit={handleEditPermissionRow} className="mt-6 space-y-5">
+            <form onSubmit={handleEditPermissionRow} className="mt-6 space-y-5">
               <div>
                 <label className="block text-sm font-medium text-slate-500 mb-1">
                   Nama Jabatan (Hierarki ID)
@@ -2314,7 +2302,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                     className="h-4.5 w-4.5 text-amber-600 focus:ring-amber-500 border-slate-300 rounded cursor-pointer"
                   />
                   <label htmlFor="editContentManagement" className="text-sm font-semibold text-slate-700 cursor-pointer select-none">
-                    Izin Kelola Konten (public.permission.content_management)
+                    Izin Kelola Konten Video (public.permission.content_management)
                   </label>
                 </div>
 
@@ -2380,7 +2368,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
       {isAddPositionModalOpen && activeMenu === 'jabatan' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm">
           <div className="relative w-full max-w-lg bg-white p-6 sm:p-8 rounded-2xl shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
-            
+
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-900">
@@ -2458,7 +2446,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
       {isAddPermissionModalOpen && activeMenu === 'akses' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm">
           <div className="relative w-full max-w-lg bg-white p-6 sm:p-8 rounded-2xl shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
-            
+
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-900">
@@ -2513,7 +2501,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                     className="h-4.5 w-4.5 text-amber-600 focus:ring-amber-500 border-slate-300 rounded cursor-pointer"
                   />
                   <label htmlFor="addContentManagement" className="text-sm font-semibold text-slate-700 cursor-pointer select-none">
-                    Izin Kelola Konten (content_management)
+                    Izin Kelola Konten Video (content_management)
                   </label>
                 </div>
 
@@ -2576,7 +2564,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
       {isBlogModalOpen && activeMenu === 'blog' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm">
           <div className="relative w-full max-w-2xl bg-white p-6 sm:p-8 rounded-2xl shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
-            
+
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-900">

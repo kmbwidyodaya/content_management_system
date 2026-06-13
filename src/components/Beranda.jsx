@@ -323,7 +323,7 @@ export default function Beranda({ user }) {
       {/* Info Tips / Shortcuts */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl pt-2">
         <div className="bg-slate-50 border border-slate-100 p-5 rounded-2xl">
-          <h3 className="text-sm font-bold text-slate-800 m-0">Kelola Konten Publikasi</h3>
+          <h3 className="text-sm font-bold text-slate-800 m-0">Kelola Konten Video</h3>
           <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
             Terbitkan, edit, atau hapus konten video/link yang disematkan ke website utama.
           </p>
