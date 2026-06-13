@@ -1136,6 +1136,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                         <th className="px-6 py-4">Judul Konten</th>
                         <th className="px-6 py-4">Deskripsi</th>
                         <th className="px-6 py-4">Embed Link</th>
+                        <th className="px-6 py-4">Created by</th>
                         <th className="px-6 py-4 text-right">Aksi</th>
                       </tr>
                     </thead>
@@ -1146,6 +1147,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                           <td className="px-6 py-4"><div className="h-4 w-40 shimmer-bg rounded"></div></td>
                           <td className="px-6 py-4"><div className="h-4 w-60 shimmer-bg rounded"></div></td>
                           <td className="px-6 py-4"><div className="h-4 w-48 shimmer-bg rounded"></div></td>
+                          <td className="px-6 py-4"><div className="h-4 w-28 shimmer-bg rounded"></div></td>
                           <td className="px-6 py-4 text-right"><div className="h-8 w-24 shimmer-bg rounded ml-auto"></div></td>
                         </tr>
                       ))}
@@ -1181,6 +1183,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                         <th className="px-6 py-4">Judul Konten</th>
                         <th className="px-6 py-4">Deskripsi</th>
                         <th className="px-6 py-4">Embed Link</th>
+                        <th className="px-6 py-4">Created by</th>
                         <th className="px-6 py-4 text-right">Aksi</th>
                       </tr>
                     </thead>
@@ -1217,6 +1220,9 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                             ) : (
                               <span className="text-slate-400 italic">Tidak ada link</span>
                             )}
+                          </td>
+                          <td className="px-6 py-4 text-slate-600 font-semibold">
+                            {content.author_name || <span className="text-slate-400 italic">Sistem</span>}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right">
                             <div className="flex items-center justify-end space-x-2">
@@ -1669,6 +1675,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                           <th className="px-6 py-4">Judul Artikel</th>
                           <th className="px-6 py-4">Sub Judul</th>
                           <th className="px-6 py-4">Isi Konten (Ringkasan)</th>
+                          <th className="px-6 py-4">Created by</th>
                           <th className="px-6 py-4">Tanggal Dibuat</th>
                           <th className="px-6 py-4 text-right">Aksi</th>
                         </tr>
@@ -1680,6 +1687,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                             <td className="px-6 py-4"><div className="h-4 w-40 shimmer-bg rounded"></div></td>
                             <td className="px-6 py-4"><div className="h-4 w-32 shimmer-bg rounded"></div></td>
                             <td className="px-6 py-4"><div className="h-4 w-60 shimmer-bg rounded"></div></td>
+                            <td className="px-6 py-4"><div className="h-4 w-28 shimmer-bg rounded"></div></td>
                             <td className="px-6 py-4"><div className="h-4 w-28 shimmer-bg rounded"></div></td>
                             <td className="px-6 py-4 text-right"><div className="h-8 w-24 shimmer-bg rounded ml-auto"></div></td>
                           </tr>
@@ -1724,6 +1732,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                           <th className="px-6 py-4">Judul Artikel</th>
                           <th className="px-6 py-4">Sub Judul</th>
                           <th className="px-6 py-4">Isi Konten (Ringkasan)</th>
+                          <th className="px-6 py-4">Created by</th>
                           <th className="px-6 py-4">Tanggal Dibuat</th>
                           <th className="px-6 py-4 text-right">Aksi</th>
                         </tr>
@@ -1742,6 +1751,9 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                               <td className="px-6 py-4 text-slate-600 max-w-xs truncate">{blog.subtitle || '-'}</td>
                               <td className="px-6 py-4 text-slate-500 max-w-xs truncate">
                                 {blog.text ? (blog.text.length > 80 ? blog.text.substring(0, 80) + '...' : blog.text) : '-'}
+                              </td>
+                              <td className="px-6 py-4 text-slate-600 font-semibold">
+                                {blog.author_name || <span className="text-slate-400 italic">Sistem</span>}
                               </td>
                               <td className="px-6 py-4 text-xs text-slate-500">
                                 {blog.created_at ? new Date(blog.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
