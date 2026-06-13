@@ -200,14 +200,16 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
       }
 
       if (blogModalMode === 'create') {
-        // HANYA mengirimkan properti title, subtitle, dan text (tanpa id)
+        const authorName = userProfile?.name || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'Admin'
+        // HANYA mengirimkan properti title, subtitle, dan text (tanpa id) beserta author_name
         const { error } = await supabase
           .from('blog_management')
           .insert([
             {
               title: payload.title,
               subtitle: payload.subtitle,
-              text: payload.text
+              text: payload.text,
+              author_name: authorName
             }
           ])
 
@@ -755,13 +757,15 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
 
     try {
       if (modalMode === 'create') {
+        const authorName = userProfile?.name || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'Admin'
         const { data, error } = await supabase
           .from('content_management')
           .insert([
             {
               title: formTitle,
               embed_link: formEmbedLink,
-              description: formDescription
+              description: formDescription,
+              author_name: authorName
             }
           ])
           .select()
