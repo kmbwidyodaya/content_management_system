@@ -347,13 +347,20 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
         if (error) throw error
         setSuccessMsg('Permintaan desain baru berhasil ditambahkan!')
       } else {
-        const updatePayload = {
-          description: payload.description
-        }
+        const updatePayload = {}
 
-        if (permissions.design_management) {
+        if (designModalMode === 'edit') {
+          updatePayload.description = payload.description
+        } else if (designModalMode === 'view') {
+          if (!permissions.design_management) {
+            throw new Error('Anda tidak memiliki izin untuk mengupdate status atau link hasil desain.')
+          }
           updatePayload.link = payload.link || null
           updatePayload.status = payload.status
+        }
+
+        if (Object.keys(updatePayload).length === 0) {
+          throw new Error('Tidak ada data yang diubah atau Anda tidak memiliki izin.')
         }
 
         const { error } = await supabase
@@ -378,6 +385,32 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
     }
   }
 
+  const handleCancelRequest = async () => {
+    if (!window.confirm('Apakah Anda yakin ingin membatalkan permintaan desain ini?')) return
+    setDesignFormSubmitting(true)
+    setErrorMsg('')
+    setSuccessMsg('')
+    try {
+      const { error } = await supabase
+        .from('design_request')
+        .update({ status: 'Cancelled' })
+        .eq('request_id', currentRequestId)
+
+      if (error) throw error
+      setSuccessMsg('Permintaan desain berhasil dibatalkan!')
+      setIsDesignModalOpen(false)
+      setDesignFormDescription('')
+      setDesignFormLink('')
+      setDesignFormStatus('Pending')
+      fetchDesignRequests()
+    } catch (err) {
+      console.error(err)
+      setErrorMsg(`Gagal membatalkan permintaan desain: ${err.message || 'Terjadi kesalahan'}`)
+    } finally {
+      setDesignFormSubmitting(false)
+    }
+  }
+
   const openDesignCreateModal = () => {
     setDesignModalMode('create')
     setCurrentRequestId(null)
@@ -387,8 +420,8 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
     setIsDesignModalOpen(true)
   }
 
-  const openDesignEditModal = (req) => {
-    setDesignModalMode('edit')
+  const openDesignEditModal = (req, mode = 'edit') => {
+    setDesignModalMode(mode)
     setCurrentRequestId(req.request_id)
     setDesignFormDescription(req.description || '')
     setDesignFormLink(req.link || '')
@@ -1311,7 +1344,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                         <th className="px-6 py-4">Link Hasil Desain</th>
                         <th className="px-6 py-4">Status</th>
                         <th className="px-6 py-4">Created by</th>
-                        {permissions.design_management && <th className="px-6 py-4 text-right">Aksi</th>}
+                        <th className="px-6 py-4 text-right">Aksi</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -1322,7 +1355,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                           <td className="px-6 py-4"><div className="h-4 w-48 shimmer-bg rounded"></div></td>
                           <td className="px-6 py-4"><div className="h-4 w-20 shimmer-bg rounded"></div></td>
                           <td className="px-6 py-4"><div className="h-4 w-28 shimmer-bg rounded"></div></td>
-                          {permissions.design_management && <td className="px-6 py-4 text-right"><div className="h-8 w-24 shimmer-bg rounded ml-auto"></div></td>}
+                          <td className="px-6 py-4 text-right"><div className="h-8 w-24 shimmer-bg rounded ml-auto"></div></td>
                         </tr>
                       ))}
                     </tbody>
@@ -1366,7 +1399,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                         <th className="px-6 py-4">Link Hasil Desain</th>
                         <th className="px-6 py-4">Status</th>
                         <th className="px-6 py-4">Created by</th>
-                        {permissions.design_management && <th className="px-6 py-4 text-right">Aksi</th>}
+                        <th className="px-6 py-4 text-right">Aksi</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -1421,22 +1454,33 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                             <td className="px-6 py-4 text-slate-600 font-semibold">
                               {req.user?.name || req.user?.email || <span className="text-slate-400 italic">Sistem</span>}
                             </td>
-                            {permissions.design_management && (
-                              <td className="px-6 py-4 whitespace-nowrap text-right">
-                                <div className="flex items-center justify-end space-x-2">
-                                  <button
-                                    onClick={() => openDesignEditModal(req)}
-                                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 border border-slate-200 rounded-md text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-900 transition-all cursor-pointer shadow-sm"
-                                  >
-                                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                    </svg>
-                                    <span>View Request</span>
-                                  </button>
-                                </div>
-                              </td>
-                            )}
+                            <td className="px-6 py-4 whitespace-nowrap text-right">
+                               <div className="flex items-center justify-end space-x-2">
+                                 {permissions.design_management && (
+                                   <button
+                                     onClick={() => openDesignEditModal(req, 'view')}
+                                     className="inline-flex items-center space-x-1.5 px-3 py-1.5 border border-slate-200 rounded-md text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-900 transition-all cursor-pointer shadow-sm"
+                                   >
+                                     <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                     </svg>
+                                     <span>View Request</span>
+                                   </button>
+                                 )}
+                                 {req.user_id === user?.id && (
+                                   <button
+                                     onClick={() => openDesignEditModal(req, 'edit')}
+                                     className="inline-flex items-center space-x-1.5 px-3 py-1.5 border border-slate-200 rounded-md text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-900 transition-all cursor-pointer shadow-sm"
+                                   >
+                                     <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                     </svg>
+                                     <span>Edit</span>
+                                   </button>
+                                 )}
+                               </div>
+                            </td>
                           </tr>
                         ))}
                     </tbody>
@@ -3105,7 +3149,11 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-900">
-                {designModalMode === 'create' ? 'Ajukan Permintaan Desain Baru' : 'Edit Permintaan Desain'}
+                {designModalMode === 'create'
+                  ? 'Ajukan Permintaan Desain Baru'
+                  : designModalMode === 'edit'
+                    ? 'Edit Permintaan Desain'
+                    : 'Detail Permintaan Desain'}
               </h2>
               <button
                 onClick={() => setIsDesignModalOpen(false)}
@@ -3127,48 +3175,57 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                   id="designFormDescription"
                   required
                   rows="4"
+                  disabled={designModalMode === 'view'}
                   placeholder="Jelaskan kebutuhan desain Anda (contoh: ukuran, teks, tema, batas waktu)..."
                   value={designFormDescription}
                   onChange={(e) => setDesignFormDescription(e.target.value)}
-                  className="block w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 focus:bg-white transition-all text-sm resize-none animate-none"
+                  className={`block w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition-all text-sm resize-none animate-none ${
+                    designModalMode === 'view'
+                      ? 'bg-slate-100 text-slate-500 cursor-not-allowed'
+                      : 'bg-slate-50 focus:bg-white'
+                  }`}
                 ></textarea>
               </div>
 
-              {designModalMode === 'edit' && (
+              {(designModalMode === 'edit' || designModalMode === 'view') && (
                 <>
                   <div>
                     <label htmlFor="designFormLink" className="block text-sm font-semibold text-slate-700 mb-1">
-                      Link Hasil Desain {permissions.design_management && <span className="text-amber-600 font-normal">(Khusus Desainer/Admin)</span>}
+                      Link Hasil Desain {permissions.design_management && designModalMode === 'view' && <span className="text-amber-600 font-normal">(Khusus Desainer/Admin)</span>}
                     </label>
                     <input
                       type="url"
                       id="designFormLink"
-                      disabled={!permissions.design_management}
-                      placeholder={permissions.design_management ? "https://drive.google.com/..." : "Belum ada link hasil desain"}
+                      disabled={designModalMode === 'edit' || !permissions.design_management}
+                      placeholder={
+                        permissions.design_management && designModalMode === 'view'
+                          ? "https://drive.google.com/..."
+                          : "Belum ada link hasil desain"
+                      }
                       value={designFormLink}
                       onChange={(e) => setDesignFormLink(e.target.value)}
-                      className={`block w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 focus:bg-white transition-all text-sm ${
-                        !permissions.design_management
+                      className={`block w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition-all text-sm ${
+                        (designModalMode === 'edit' || !permissions.design_management)
                           ? 'bg-slate-100 text-slate-500 cursor-not-allowed'
-                          : 'bg-slate-50'
+                          : 'bg-slate-50 focus:bg-white'
                       }`}
                     />
                   </div>
 
                   <div>
                     <label htmlFor="designFormStatus" className="block text-sm font-semibold text-slate-700 mb-1">
-                      Status Request {permissions.design_management && <span className="text-amber-600 font-normal">(Khusus Desainer/Admin)</span>}
+                      Status Request {permissions.design_management && designModalMode === 'view' && <span className="text-amber-600 font-normal">(Khusus Desainer/Admin)</span>}
                     </label>
                     <select
                       id="designFormStatus"
                       required
-                      disabled={!permissions.design_management}
+                      disabled={designModalMode === 'edit' || !permissions.design_management}
                       value={designFormStatus}
                       onChange={(e) => setDesignFormStatus(e.target.value)}
-                      className={`block w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 focus:bg-white transition-all text-sm ${
-                        !permissions.design_management
+                      className={`block w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition-all text-sm ${
+                        (designModalMode === 'edit' || !permissions.design_management)
                           ? 'bg-slate-100 text-slate-500 cursor-not-allowed'
-                          : 'bg-slate-50 cursor-pointer'
+                          : 'bg-slate-50 cursor-pointer focus:bg-white'
                       }`}
                     >
                       <option value="Pending">Pending</option>
@@ -3182,6 +3239,16 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
 
               {/* Form Buttons */}
               <div className="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3 mt-8">
+                {designModalMode === 'edit' && designFormStatus !== 'Cancelled' && designFormStatus !== 'Completed' && (
+                  <button
+                    type="button"
+                    onClick={handleCancelRequest}
+                    disabled={designFormSubmitting}
+                    className="mr-auto px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white font-semibold text-sm rounded-lg transition-all shadow-md shadow-rose-500/10 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Cancel Request
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setIsDesignModalOpen(false)}
@@ -3189,19 +3256,21 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                 >
                   Batal
                 </button>
-                <button
-                  type="submit"
-                  disabled={designFormSubmitting}
-                  className="flex items-center space-x-1.5 px-5 py-2 bg-amber-500 text-slate-950 font-semibold text-sm rounded-lg hover:bg-amber-600 hover:text-white transition-all shadow-md shadow-amber-500/10 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  {designFormSubmitting && (
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-slate-950" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                  )}
-                  <span>{designModalMode === 'create' ? 'Ajukan Request' : 'Simpan Perubahan'}</span>
-                </button>
+                {(designModalMode !== 'view' || permissions.design_management) && (
+                  <button
+                    type="submit"
+                    disabled={designFormSubmitting}
+                    className="flex items-center space-x-1.5 px-5 py-2 bg-amber-500 text-slate-950 font-semibold text-sm rounded-lg hover:bg-amber-600 hover:text-white transition-all shadow-md shadow-amber-500/10 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {designFormSubmitting && (
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-slate-950" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                    )}
+                    <span>{designModalMode === 'create' ? 'Ajukan Request' : 'Simpan Perubahan'}</span>
+                  </button>
+                )}
               </div>
             </form>
           </div>
