@@ -122,6 +122,19 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
   const [blogFormText, setBlogFormText] = useState('')
   const [blogFormSubmitting, setBlogFormSubmitting] = useState(false)
 
+  // Design Request States
+  const [designRequests, setDesignRequests] = useState([])
+  const [designRequestsLoading, setDesignRequestsLoading] = useState(false)
+  const [designRequestsError, setDesignRequestsError] = useState('')
+  const [designRequestsSearchQuery, setDesignRequestsSearchQuery] = useState('')
+  const [isDesignModalOpen, setIsDesignModalOpen] = useState(false)
+  const [designModalMode, setDesignModalMode] = useState('create') // 'create' | 'edit'
+  const [currentRequestId, setCurrentRequestId] = useState(null)
+  const [designFormDescription, setDesignFormDescription] = useState('')
+  const [designFormLink, setDesignFormLink] = useState('')
+  const [designFormStatus, setDesignFormStatus] = useState('Pending')
+  const [designFormSubmitting, setDesignFormSubmitting] = useState(false)
+
   // Edit/Add Permission Checkbox states
   const [editBlogManagement, setEditBlogManagement] = useState(false)
   const [addBlogManagement, setAddBlogManagement] = useState(false)
@@ -263,6 +276,116 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
     setBlogFormEmbedLink(blog.embed_link || '')
     setBlogFormText(blog.text || '')
     setIsBlogModalOpen(true)
+  }
+
+  // Fetch Design Requests
+  const fetchDesignRequests = async () => {
+    if (designRequests.length === 0) setDesignRequestsLoading(true)
+    setDesignRequestsError('')
+    try {
+      const { data, error } = await supabase
+        .from('design_request')
+        .select('*, user:user_id(name, email)')
+        .order('request_id', { ascending: false })
+
+      if (error) throw error
+      setDesignRequests(data || [])
+    } catch (err) {
+      console.error(err)
+      setDesignRequestsError('Gagal memuat permintaan desain dari database.')
+    } finally {
+      setDesignRequestsLoading(false)
+    }
+  }
+
+  const handleDesignDelete = async (requestId) => {
+    if (!window.confirm('Apakah Anda yakin ingin menghapus permintaan desain ini?')) return
+    setErrorMsg('')
+    setSuccessMsg('')
+    try {
+      const { error } = await supabase
+        .from('design_request')
+        .delete()
+        .eq('request_id', requestId)
+
+      if (error) throw error
+      setSuccessMsg('Permintaan desain berhasil dihapus!')
+      fetchDesignRequests()
+    } catch (err) {
+      console.error(err)
+      setErrorMsg(`Gagal menghapus permintaan desain: ${err.message}`)
+    }
+  }
+
+  const handleDesignSubmit = async (e) => {
+    e.preventDefault()
+    setDesignFormSubmitting(true)
+    setErrorMsg('')
+    setSuccessMsg('')
+    try {
+      const payload = {
+        description: designFormDescription.trim(),
+        link: designFormLink.trim(),
+        status: designFormStatus
+      }
+
+      if (designModalMode === 'create') {
+        const { error } = await supabase
+          .from('design_request')
+          .insert([
+            {
+              description: payload.description,
+              link: payload.link || null,
+              status: 'Pending',
+              user_id: user.id
+            }
+          ])
+
+        if (error) throw error
+        setSuccessMsg('Permintaan desain baru berhasil ditambahkan!')
+      } else {
+        const { error } = await supabase
+          .from('design_request')
+          .update({
+            description: payload.description,
+            link: payload.link || null,
+            status: payload.status
+          })
+          .eq('request_id', currentRequestId)
+
+        if (error) throw error
+        setSuccessMsg('Permintaan desain berhasil diperbarui!')
+      }
+
+      setIsDesignModalOpen(false)
+      setDesignFormDescription('')
+      setDesignFormLink('')
+      setDesignFormStatus('Pending')
+      fetchDesignRequests()
+    } catch (err) {
+      console.error(err)
+      setErrorMsg(`Gagal menyimpan permintaan desain: ${err.message || 'Terjadi kesalahan'}`)
+    } finally {
+      setDesignFormSubmitting(false)
+    }
+  }
+
+  const openDesignCreateModal = () => {
+    setDesignModalMode('create')
+    setCurrentRequestId(null)
+    setDesignFormDescription('')
+    setDesignFormLink('')
+    setDesignFormStatus('Pending')
+    setIsDesignModalOpen(true)
+  }
+
+  const openDesignEditModal = (req) => {
+    setDesignModalMode('edit')
+    setCurrentRequestId(req.request_id)
+    setDesignFormDescription(req.description || '')
+    setDesignFormLink(req.link || '')
+    setDesignFormStatus(req.status || 'Pending')
+    setIsDesignModalOpen(true)
   }
 
   // Fetch Members (from public.user)
@@ -710,6 +833,8 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
       fetchPermissionsList()
     } else if (activeMenu === 'blog') {
       fetchBlogs()
+    } else if (activeMenu === 'design') {
+      fetchDesignRequests()
     }
   }, [activeMenu])
 
@@ -897,6 +1022,25 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
               <span>Beranda</span>
+            </button>
+          )}
+
+          {/* Design Request: Always visible to all logged-in roles */}
+          {permissions.access && (
+            <button
+              onClick={() => {
+                setActiveMenu('design');
+                setIsSidebarOpen(false);
+              }}
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all cursor-pointer ${activeMenu === 'design'
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+            >
+              <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+              </svg>
+              <span>Design Request</span>
             </button>
           )}
 
@@ -1096,6 +1240,205 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
         {/* -------------------- TAB: BERANDA -------------------- */}
         {activeMenu === 'beranda' && (
           <Beranda user={user} />
+        )}
+
+        {/* -------------------- TAB: DESIGN REQUEST -------------------- */}
+        {activeMenu === 'design' && (
+          <>
+            {/* Title & Actions Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0 pb-6 border-b border-slate-200">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight text-slate-900 m-0">
+                  Design Request
+                </h1>
+                <p className="text-sm text-slate-500 mt-1">
+                  Kirimkan, pantau, dan kelola permintaan desain publikasi KMB Widyodaya.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
+                {/* Search Input */}
+                <div className="relative flex-1 sm:w-64">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Cari request..."
+                    value={designRequestsSearchQuery}
+                    onChange={(e) => setDesignRequestsSearchQuery(e.target.value)}
+                    className="block w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg bg-white text-sm placeholder-slate-400 text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition-all shadow-sm"
+                  />
+                </div>
+
+                {/* Create Button */}
+                <button
+                  onClick={openDesignCreateModal}
+                  className="flex items-center justify-center space-x-1.5 px-5 py-2.5 bg-amber-500 text-slate-950 font-semibold text-sm rounded-lg hover:bg-amber-600 hover:text-white transition-all duration-200 shadow-md shadow-amber-500/10 cursor-pointer"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span>Tambah Request</span>
+                </button>
+              </div>
+            </div>
+
+            {/* List Table */}
+            <div className="mt-8">
+              {designRequestsLoading ? (
+                /* Shimmer loading layout for Table */
+                <div className="overflow-x-auto bg-white border border-slate-200 rounded-xl shadow-sm">
+                  <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
+                    <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-xs tracking-wider">
+                      <tr>
+                        <th className="px-6 py-4">ID</th>
+                        <th className="px-6 py-4">Deskripsi</th>
+                        <th className="px-6 py-4">Link Referensi</th>
+                        <th className="px-6 py-4">Status</th>
+                        <th className="px-6 py-4">Created by</th>
+                        <th className="px-6 py-4 text-right">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {[1, 2, 3].map((n) => (
+                        <tr key={n}>
+                          <td className="px-6 py-4"><div className="h-4 w-8 shimmer-bg rounded"></div></td>
+                          <td className="px-6 py-4"><div className="h-4 w-60 shimmer-bg rounded"></div></td>
+                          <td className="px-6 py-4"><div className="h-4 w-48 shimmer-bg rounded"></div></td>
+                          <td className="px-6 py-4"><div className="h-4 w-20 shimmer-bg rounded"></div></td>
+                          <td className="px-6 py-4"><div className="h-4 w-28 shimmer-bg rounded"></div></td>
+                          <td className="px-6 py-4 text-right"><div className="h-8 w-24 shimmer-bg rounded ml-auto"></div></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : designRequestsError ? (
+                <div className="mb-6 rounded-xl bg-red-50 border border-red-200 p-4 shadow-sm text-red-800 text-sm">
+                  {designRequestsError}
+                </div>
+              ) : designRequests.filter(req =>
+                (req.description || '').toLowerCase().includes(designRequestsSearchQuery.toLowerCase()) ||
+                (req.link || '').toLowerCase().includes(designRequestsSearchQuery.toLowerCase()) ||
+                (req.status || '').toLowerCase().includes(designRequestsSearchQuery.toLowerCase())
+              ).length === 0 ? (
+                /* Empty State */
+                <div className="bg-white rounded-xl py-16 px-4 border border-slate-200 text-center max-w-xl mx-auto mt-12 shadow-sm">
+                  <svg className="mx-auto h-16 w-16 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                  <h3 className="mt-4 text-lg font-semibold text-slate-800">Tidak ada request ditemukan</h3>
+                  <p className="mt-2 text-sm text-slate-500 max-w-xs mx-auto">
+                    {designRequestsSearchQuery ? 'Tidak ada request yang cocok dengan pencarian Anda.' : 'Belum ada request desain di database. Klik tombol "Tambah Request" untuk mengajukan.'}
+                  </p>
+                  {designRequestsSearchQuery && (
+                    <button
+                      onClick={() => setDesignRequestsSearchQuery('')}
+                      className="mt-4 text-amber-600 hover:text-amber-500 font-semibold text-sm cursor-pointer"
+                    >
+                      Clear pencarian
+                    </button>
+                  )}
+                </div>
+              ) : (
+                /* Table Row List of Design Requests */
+                <div className="overflow-x-auto bg-white border border-slate-200 rounded-xl shadow-sm">
+                  <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
+                    <thead className="bg-slate-50 text-slate-600 uppercase font-semibold text-xs tracking-wider">
+                      <tr>
+                        <th className="px-6 py-4">ID</th>
+                        <th className="px-6 py-4">Deskripsi</th>
+                        <th className="px-6 py-4">Link Referensi</th>
+                        <th className="px-6 py-4">Status</th>
+                        <th className="px-6 py-4">Created by</th>
+                        <th className="px-6 py-4 text-right">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-700">
+                      {designRequests
+                        .filter(req =>
+                          (req.description || '').toLowerCase().includes(designRequestsSearchQuery.toLowerCase()) ||
+                          (req.link || '').toLowerCase().includes(designRequestsSearchQuery.toLowerCase()) ||
+                          (req.status || '').toLowerCase().includes(designRequestsSearchQuery.toLowerCase())
+                        )
+                        .map((req) => (
+                          <tr key={req.request_id} className="hover:bg-slate-50/70 transition-colors">
+                            <td className="px-6 py-4 whitespace-nowrap font-mono text-xs font-semibold text-slate-500">
+                              {req.request_id}
+                            </td>
+                            <td className="px-6 py-4 font-semibold text-slate-900 max-w-sm truncate" title={req.description}>
+                              {req.description}
+                            </td>
+                            <td className="px-6 py-4 max-w-xs">
+                              {req.link ? (
+                                <div className="flex items-center space-x-1.5">
+                                  <code className="text-xs font-mono bg-slate-100 text-slate-600 px-2.5 py-1 rounded truncate max-w-[200px]" title={req.link}>
+                                    {req.link}
+                                  </code>
+                                  <a
+                                    href={req.link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-slate-400 hover:text-amber-500 transition-colors flex-shrink-0"
+                                    title="Buka Tautan"
+                                  >
+                                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                  </a>
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 italic">Tidak ada link</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${req.status === 'Completed'
+                                  ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                                  : req.status === 'In Progress'
+                                    ? 'bg-blue-100 text-blue-800 border-blue-200'
+                                    : req.status === 'Cancelled'
+                                      ? 'bg-rose-100 text-rose-800 border-rose-200'
+                                      : 'bg-amber-100 text-amber-800 border-amber-200'
+                                }`}>
+                                {req.status || 'Pending'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-slate-600 font-semibold">
+                              {req.user?.name || req.user?.email || <span className="text-slate-400 italic">Sistem</span>}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right">
+                              <div className="flex items-center justify-end space-x-2">
+                                <button
+                                  onClick={() => openDesignEditModal(req)}
+                                  className="inline-flex items-center space-x-1 px-3 py-1.5 border border-slate-200 rounded-md text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-900 transition-all cursor-pointer shadow-sm"
+                                >
+                                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                  <span>Edit</span>
+                                </button>
+                                <button
+                                  onClick={() => handleDesignDelete(req.request_id)}
+                                  className="inline-flex items-center space-x-1 px-3 py-1.5 border border-red-200 rounded-md text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 hover:text-red-900 transition-all cursor-pointer shadow-sm"
+                                >
+                                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                  <span>Hapus</span>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </>
         )}
 
         {/* -------------------- TAB: KELOLA KONTEN VIDEO -------------------- */}
@@ -2705,6 +3048,105 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                     </svg>
                   )}
                   <span>{blogModalMode === 'create' ? 'Tambah Artikel' : 'Simpan Perubahan'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Overlay for Create & Edit (Only for Design Request tab) */}
+      {isDesignModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm">
+          <div className="relative w-full max-w-lg bg-white p-6 sm:p-8 rounded-2xl shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <h2 className="text-xl font-bold text-slate-900">
+                {designModalMode === 'create' ? 'Ajukan Permintaan Desain Baru' : 'Edit Permintaan Desain'}
+              </h2>
+              <button
+                onClick={() => setIsDesignModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 rounded-lg p-1 hover:bg-slate-100 transition-all cursor-pointer"
+              >
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleDesignSubmit} className="mt-6 space-y-5">
+              <div>
+                <label htmlFor="designFormDescription" className="block text-sm font-semibold text-slate-700 mb-1">
+                  Deskripsi Permintaan Desain <span className="text-amber-600">*</span>
+                </label>
+                <textarea
+                  id="designFormDescription"
+                  required
+                  rows="4"
+                  placeholder="Jelaskan kebutuhan desain Anda (contoh: ukuran, teks, tema, batas waktu)..."
+                  value={designFormDescription}
+                  onChange={(e) => setDesignFormDescription(e.target.value)}
+                  className="block w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 focus:bg-white transition-all text-sm resize-none animate-none"
+                ></textarea>
+              </div>
+
+              <div>
+                <label htmlFor="designFormLink" className="block text-sm font-semibold text-slate-700 mb-1">
+                  Link Referensi / Aset (Opsional)
+                </label>
+                <input
+                  type="url"
+                  id="designFormLink"
+                  placeholder="https://drive.google.com/..."
+                  value={designFormLink}
+                  onChange={(e) => setDesignFormLink(e.target.value)}
+                  className="block w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 focus:bg-white transition-all text-sm"
+                />
+              </div>
+
+              {designModalMode === 'edit' && (
+                <div>
+                  <label htmlFor="designFormStatus" className="block text-sm font-semibold text-slate-700 mb-1">
+                    Status Request <span className="text-amber-600">*</span>
+                  </label>
+                  <select
+                    id="designFormStatus"
+                    required
+                    value={designFormStatus}
+                    onChange={(e) => setDesignFormStatus(e.target.value)}
+                    className="block w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 focus:bg-white transition-all text-sm cursor-pointer"
+                  >
+                    <option value="Pending">Pending</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Form Buttons */}
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3 mt-8">
+                <button
+                  type="button"
+                  onClick={() => setIsDesignModalOpen(false)}
+                  className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition-all cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={designFormSubmitting}
+                  className="flex items-center space-x-1.5 px-5 py-2 bg-amber-500 text-slate-950 font-semibold text-sm rounded-lg hover:bg-amber-600 hover:text-white transition-all shadow-md shadow-amber-500/10 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {designFormSubmitting && (
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-slate-950" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                  )}
+                  <span>{designModalMode === 'create' ? 'Ajukan Request' : 'Simpan Perubahan'}</span>
                 </button>
               </div>
             </form>
