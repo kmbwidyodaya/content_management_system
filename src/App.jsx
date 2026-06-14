@@ -3,6 +3,7 @@ import { supabase } from './supabaseClient'
 import Login from './components/Login'
 import AccessDenied from './components/AccessDenied'
 import Dashboard from './components/Dashboard'
+import OnboardingChangePassword from './components/OnboardingChangePassword'
 
 function App() {
   const [session, setSession] = useState(null)
@@ -14,6 +15,7 @@ function App() {
   const [userPosition, setUserPosition] = useState('')
   const [userProfile, setUserProfile] = useState(null)
   const lastUserIdRef = useRef(null)
+  const [mustChangePassword, setMustChangePassword] = useState(false)
   const [permissions, setPermissions] = useState({
     access: false,
     manage_permission: false,
@@ -66,15 +68,16 @@ function App() {
         user_id: user.id,
         email: user.email,
         name: '',
-        hierarchy: 4
+        hierarchy: 4,
+        change_pw: false
       }
       let currentPosName = ''
 
       try {
-        // 1. JALUR UTAMA MASUK: Periksa kolom 'access', 'hierarchy', dan 'name' di tabel 'user' secara bersamaan
+        // 1. JALUR UTAMA MASUK: Periksa kolom 'access', 'hierarchy', 'name', dan 'change_pw' di tabel 'user' secara bersamaan
         const { data: dbUser, error: dbUserError } = await supabase
           .from('user')
-          .select('access, hierarchy, name')
+          .select('access, hierarchy, name, change_pw')
           .eq('user_id', user.id)
           .maybeSingle()
 
@@ -91,6 +94,7 @@ function App() {
         if (dbUser.hierarchy !== null && dbUser.hierarchy !== undefined) {
           userData.hierarchy = Number(dbUser.hierarchy)
         }
+        userData.change_pw = dbUser.change_pw === true
 
         // Jika access FALSE, langsung batasi
         if (!userData.access) {
@@ -245,6 +249,12 @@ function App() {
           design_management: isAnggota ? false : hasDesignManagement
         })
 
+        if (userData.change_pw) {
+          setMustChangePassword(true)
+        } else {
+          setMustChangePassword(false)
+        }
+
         // Karena access = TRUE, buka dashboard
         setIsAuthorized(true)
 
@@ -266,6 +276,7 @@ function App() {
     setUser(null)
     setSession(null)
     setIsAuthorized(null)
+    setMustChangePassword(false)
   }
 
   // 3. Inactivity Timeout (10 minutes)
@@ -327,6 +338,22 @@ function App() {
         <AccessDenied userEmail={user.email} onLogout={handleLogout} />
 
       </div>
+    )
+  }
+
+  // If must change password, show onboarding
+  if (mustChangePassword) {
+    return (
+      <OnboardingChangePassword
+        user={user}
+        onPasswordChanged={() => {
+          setMustChangePassword(false)
+          if (userProfile) {
+            setUserProfile({ ...userProfile, change_pw: false })
+          }
+        }}
+        onLogout={handleLogout}
+      />
     )
   }
 

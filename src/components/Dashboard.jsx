@@ -74,6 +74,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
   const [memberHierarchy, setMemberHierarchy] = useState(5) // default to 5 (Anggota)
   const [memberAccess, setMemberAccess] = useState(false)
   const [memberPassword, setMemberPassword] = useState('')
+  const [memberChangePw, setMemberChangePw] = useState(true)
   const [memberSubmitting, setMemberSubmitting] = useState(false)
 
   // Edit Member Modal State
@@ -83,6 +84,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
   const [editMemberHierarchy, setEditMemberHierarchy] = useState(5)
   const [editMemberAccess, setEditMemberAccess] = useState(false)
   const [editMemberPassword, setEditMemberPassword] = useState('')
+  const [editMemberChangePw, setEditMemberChangePw] = useState(false)
   const [editMemberSubmitting, setEditMemberSubmitting] = useState(false)
 
   // Edit Position Modal State
@@ -534,7 +536,8 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
         name: memberName.trim(),
         email: memberEmail.trim(),
         hierarchy: Number(memberHierarchy),
-        access: memberAccess
+        access: memberAccess,
+        change_pw: memberChangePw
       }
 
       // Use upsert to handle case where db trigger handle_new_user already created the row
@@ -566,6 +569,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
       setMemberPassword('')
       setMemberHierarchy(5)
       setMemberAccess(false)
+      setMemberChangePw(true)
 
       fetchMembers()
     } catch (err) {
@@ -624,7 +628,8 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
         .update({
           name: editMemberName.trim(),
           hierarchy: Number(editMemberHierarchy),
-          access: editMemberAccess
+          access: editMemberAccess,
+          change_pw: editMemberChangePw
         })
         .eq('user_id', editingMember.user_id)
 
@@ -635,6 +640,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
       setEditingMember(null)
       setEditMemberName('')
       setEditMemberPassword('')
+      setEditMemberChangePw(false)
       fetchMembers()
     } catch (err) {
       console.error(err)
@@ -1748,6 +1754,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                         <th className="px-6 py-4">Email</th>
                         <th className="px-6 py-4">Hierarki (ID)</th>
                         <th className="px-6 py-4 text-center">Status Akses</th>
+                        <th className="px-6 py-4 text-center">Need Change Password</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -1757,6 +1764,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                           <td className="px-6 py-4"><div className="h-4 w-44 shimmer-bg rounded"></div></td>
                           <td className="px-6 py-4"><div className="h-4 w-20 shimmer-bg rounded"></div></td>
                           <td className="px-6 py-4"><div className="h-8 w-24 shimmer-bg rounded mx-auto"></div></td>
+                          <td className="px-6 py-4"><div className="h-8 w-20 shimmer-bg rounded mx-auto"></div></td>
                         </tr>
                       ))}
                     </tbody>
@@ -1782,6 +1790,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                         <th className="px-6 py-4">Email</th>
                         <th className="px-6 py-4">Nama Jabatan</th>
                         <th className="px-6 py-4 text-center">Status Akses CMS</th>
+                        <th className="px-6 py-4 text-center">Need Change Password</th>
                         <th className="px-6 py-4 text-right">Aksi</th>
                       </tr>
                     </thead>
@@ -1818,8 +1827,17 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                                 title={canEditThisMember ? "Ubah Izin Akses" : "Peran dilindungi"}
                               >
                                 <span className={`h-1.5 w-1.5 rounded-full mr-1.5 ${member.access ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
-                                {member.access ? 'Aktif (Diizinkan)' : 'Nonaktif (Ditolak)'}
+                                {member.access ? 'Aktif' : 'Tidak Aktif'}
                               </button>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${member.change_pw
+                                ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                                : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                }`}>
+                                <span className={`h-1.5 w-1.5 rounded-full mr-1.5 ${member.change_pw ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`}></span>
+                                {member.change_pw ? 'Ya' : 'Tidak'}
+                              </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right">
                               <button
@@ -1830,6 +1848,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                                   setEditMemberHierarchy(member.hierarchy || 5)
                                   setEditMemberAccess(member.access === true)
                                   setEditMemberPassword('')
+                                  setEditMemberChangePw(member.change_pw === true)
                                   setIsEditMemberModalOpen(true)
                                 }}
                                 className={`inline-flex items-center space-x-1 px-3 py-1.5 border border-slate-200 rounded-md text-xs font-semibold transition-all shadow-sm ${canEditThisMember
@@ -2464,6 +2483,19 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                 </label>
               </div>
 
+              <div className="flex items-center space-x-3 pt-2">
+                <input
+                  type="checkbox"
+                  id="memberChangePw"
+                  checked={memberChangePw}
+                  onChange={(e) => setMemberChangePw(e.target.checked)}
+                  className="h-4.5 w-4.5 text-amber-600 focus:ring-amber-500 border-slate-300 rounded cursor-pointer"
+                />
+                <label htmlFor="memberChangePw" className="text-sm font-semibold text-slate-700 cursor-pointer select-none">
+                  Need Change Password (change_pw)
+                </label>
+              </div>
+
               {/* Form Buttons */}
               <div className="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3 mt-8">
                 <button
@@ -2507,6 +2539,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                   setIsEditMemberModalOpen(false)
                   setEditingMember(null)
                   setEditMemberPassword('')
+                  setEditMemberChangePw(false)
                 }}
                 className="text-slate-400 hover:text-slate-600 rounded-lg p-1 hover:bg-slate-100 transition-all cursor-pointer"
               >
@@ -2607,6 +2640,19 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                 </label>
               </div>
 
+              <div className="flex items-center space-x-3 pt-2">
+                <input
+                  type="checkbox"
+                  id="editMemberChangePw"
+                  checked={editMemberChangePw}
+                  onChange={(e) => setEditMemberChangePw(e.target.checked)}
+                  className="h-4.5 w-4.5 text-amber-600 focus:ring-amber-500 border-slate-300 rounded cursor-pointer"
+                />
+                <label htmlFor="editMemberChangePw" className="text-sm font-semibold text-slate-700 cursor-pointer select-none">
+                  Need Change Password (change_pw)
+                </label>
+              </div>
+
               {/* Form Buttons */}
               <div className="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3 mt-8">
                 <button
@@ -2615,6 +2661,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                     setIsEditMemberModalOpen(false)
                     setEditingMember(null)
                     setEditMemberPassword('')
+                    setEditMemberChangePw(false)
                   }}
                   className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition-all cursor-pointer"
                 >
