@@ -162,6 +162,8 @@ function App() {
             currentPosName = 'Content Manager'
           } else if (hVal === 4) {
             currentPosName = 'Blog Manager'
+          } else if (hVal === 6) {
+            currentPosName = 'Designer'
           } else {
             currentPosName = 'Anggota'
           }
@@ -199,6 +201,12 @@ function App() {
           hasContentManagement = false
           hasBlogManagement = true
           hasDesignManagement = false
+        } else if (hVal === 6) {
+          hasManageUser = false
+          hasManagePermission = false
+          hasContentManagement = false
+          hasBlogManagement = false
+          hasDesignManagement = true
         } else {
           hasManageUser = false
           hasManagePermission = false

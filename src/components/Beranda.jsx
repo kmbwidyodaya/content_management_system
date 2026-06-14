@@ -137,6 +137,7 @@ export default function Beranda({ user }) {
           else if (hVal === 2) resolvedPos = 'Website Admin'
           else if (hVal === 3) resolvedPos = 'Content Manager'
           else if (hVal === 4) resolvedPos = 'Blog Manager'
+          else if (hVal === 6) resolvedPos = 'Designer'
           else resolvedPos = 'Anggota'
         }
         
@@ -174,6 +175,7 @@ export default function Beranda({ user }) {
           else if (hVal === 2) resolvedPos = 'Website Admin'
           else if (hVal === 3) resolvedPos = 'Content Manager'
           else if (hVal === 4) resolvedPos = 'Blog Manager'
+          else if (hVal === 6) resolvedPos = 'Designer'
           else resolvedPos = 'Anggota'
         }
         

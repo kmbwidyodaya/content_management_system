@@ -26,6 +26,7 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
     if (hVal === 3) return 'Content Manager'
     if (hVal === 4) return 'Blog Manager'
     if (hVal === 5) return 'Anggota'
+    if (hVal === 6) return 'Designer'
     return hierarchy !== null && hierarchy !== undefined ? `Hierarki ${hierarchy}` : '-'
   }
 
@@ -350,6 +351,10 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
         const updatePayload = {}
 
         if (designModalMode === 'edit') {
+          const activeReq = designRequests.find(r => r.request_id === currentRequestId)
+          if (activeReq && (activeReq.status || 'Pending') !== 'Pending') {
+            throw new Error(`Tidak dapat mengubah data karena status saat ini ${activeReq.status || 'Pending'}`)
+          }
           updatePayload.description = payload.description
         } else if (designModalMode === 'view') {
           if (!permissions.design_management) {
@@ -386,6 +391,10 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
   }
 
   const handleCancelRequest = async () => {
+    const activeReq = designRequests.find(r => r.request_id === currentRequestId)
+    if (activeReq && (activeReq.status || 'Pending') !== 'Pending') {
+      throw new Error(`Tidak dapat membatalkan request karena status saat ini ${activeReq.status || 'Pending'}`)
+    }
     if (!window.confirm('Apakah Anda yakin ingin membatalkan permintaan desain ini?')) return
     setDesignFormSubmitting(true)
     setErrorMsg('')
@@ -1468,17 +1477,30 @@ export default function Dashboard({ user, userProfile, onLogout, permissions = {
                                      <span>View Request</span>
                                    </button>
                                  )}
-                                 {req.user_id === user?.id && (
-                                   <button
-                                     onClick={() => openDesignEditModal(req, 'edit')}
-                                     className="inline-flex items-center space-x-1.5 px-3 py-1.5 border border-slate-200 rounded-md text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-900 transition-all cursor-pointer shadow-sm"
-                                   >
-                                     <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                     </svg>
-                                     <span>Edit</span>
-                                   </button>
-                                 )}
+                                 {req.user_id === user?.id && (() => {
+                                   const isPending = (req.status || 'Pending') === 'Pending';
+                                   return (
+                                     <button
+                                       onClick={() => {
+                                         if (isPending) {
+                                           openDesignEditModal(req, 'edit');
+                                         } else {
+                                           alert(`Tidak dapat mengubah data karena status saat ini ${req.status || 'Pending'}`);
+                                         }
+                                       }}
+                                       className={`inline-flex items-center space-x-1.5 px-3 py-1.5 border rounded-md text-xs font-semibold transition-all shadow-sm ${
+                                         isPending
+                                           ? 'border-slate-200 text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-900 cursor-pointer'
+                                           : 'border-slate-200 text-slate-400 bg-slate-100 cursor-not-allowed'
+                                       }`}
+                                     >
+                                       <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                       </svg>
+                                       <span>Edit</span>
+                                     </button>
+                                   );
+                                 })()}
                                </div>
                             </td>
                           </tr>
